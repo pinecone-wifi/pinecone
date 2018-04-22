@@ -10,10 +10,10 @@ from pinecone.model import *
 
 bssid_cache = set()
 
-
 @db_session
 def handle_beacon(pkt):
     bssid = pkt[Dot11].addr3
+
 
     if bssid in bssid_cache:
         return
