@@ -6,11 +6,13 @@ from jinja2 import Template
 
 
 class AP:
-    hostapdCmd = "hostapd"
-    hostapdConfTemplatePath = Path(Path(__file__).parent, "hostapd_template.conf").resolve()
-    hostapdConfPath = Path(Path(sys.modules["__main__"].__file__).parent, "tmp", "hostapd.conf").resolve()
-    hostapdConfPath.parent.mkdir(exist_ok=True)
+    hostapd_cmd = "hostapd"
+    hostapd_conf_template_path = Path(Path(__file__).parent, "hostapd_template.conf").resolve()
 
+    # TODO: Muliple APs configuration files.
+    hostapd_conf_path = Path(Path(sys.modules["__main__"].__file__).parent, "tmp", "hostapd.conf").resolve()
+
+    hostapd_conf_path.parent.mkdir(exist_ok=True)
 
     def __init__(self, interface, channel, encryption, passphrase, essid):
         self.interface = interface
@@ -18,8 +20,7 @@ class AP:
         self.encryption = encryption
         self.passphrase = passphrase
         self.essid = essid
-
-        self.hostapdProcess = None
+        self.hostapd_process = None
 
     def __str__(self):
         return "Interface: {}\n" \
@@ -28,17 +29,17 @@ class AP:
                "Encryption: {}\n" \
                "Passphrase: {}".format(self.interface, self.essid, self.channel, self.encryption, self.passphrase)
 
-    def isRunning(self):
-        return self.hostapdProcess is not None and self.hostapdProcess.poll() is None
+    def is_running(self):
+        return self.hostapd_process is not None and self.hostapd_process.poll() is None
 
     def stop(self):
-        if self.isRunning():
-            self.hostapdProcess.terminate()
+        if self.is_running():
+            self.hostapd_process.terminate()
 
     def start(self):
-        template = Template(AP.hostapdConfTemplatePath.read_text())
-        hostapdConf = template.render(interface=self.interface, channel=self.channel,
-                                      encryption=self.encryption, passphrase=self.passphrase, ssid=self.essid)
-        AP.hostapdConfPath.write_text(hostapdConf)
+        template = Template(AP.hostapd_conf_template_path.read_text())
+        hostapd_conf = template.render(interface=self.interface, channel=self.channel,
+                                       encryption=self.encryption, passphrase=self.passphrase, ssid=self.essid)
+        AP.hostapd_conf_path.write_text(hostapd_conf)
 
-        self.hostapdProcess = Popen([AP.hostapdCmd, str(AP.hostapdConfPath)], stdout=sys.stdout, stderr=sys.stderr)
+        self.hostapd_process = Popen([AP.hostapd_cmd, str(AP.hostapd_conf_path)], stdout=sys.stdout, stderr=sys.stderr)
