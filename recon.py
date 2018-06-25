@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import argparse
+from argparse import ArgumentParser
 import signal
 
 from pyric import pyw
@@ -66,7 +66,7 @@ def handle_packet(packet):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = ArgumentParser()
     parser.add_argument("-i", "--iface", help="mode monitor interface", required=True)
     ops = parser.parse_args()
 

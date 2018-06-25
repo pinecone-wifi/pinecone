@@ -6,9 +6,11 @@ from jinja2 import Template
 
 
 class AP:
-    hostapdPath = r"hostapd"
-    hostapdConfTemplatePath = r"pinecone/core/hostapd_template.conf"
-    hostapdConfPath = r"hostapd.conf"
+    hostapdCmd = "hostapd"
+    hostapdConfTemplatePath = Path(Path(__file__).parent, "hostapd_template.conf").resolve()
+    hostapdConfPath = Path(Path(sys.modules["__main__"].__file__).parent, "tmp", "hostapd.conf").resolve()
+    hostapdConfPath.parent.mkdir(exist_ok=True)
+
 
     def __init__(self, interface, channel, encryption, passphrase, essid):
         self.interface = interface
@@ -34,9 +36,9 @@ class AP:
             self.hostapdProcess.terminate()
 
     def start(self):
-        template = Template(Path(AP.hostapdConfTemplatePath).read_text())
+        template = Template(AP.hostapdConfTemplatePath.read_text())
         hostapdConf = template.render(interface=self.interface, channel=self.channel,
                                       encryption=self.encryption, passphrase=self.passphrase, ssid=self.essid)
-        Path(AP.hostapdConfPath).write_text(hostapdConf)
+        AP.hostapdConfPath.write_text(hostapdConf)
 
-        self.hostapdProcess = Popen([AP.hostapdPath, AP.hostapdConfPath], stdout=sys.stdout, stderr=sys.stderr)
+        self.hostapdProcess = Popen([AP.hostapdCmd, str(AP.hostapdConfPath)], stdout=sys.stdout, stderr=sys.stderr)
