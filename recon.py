@@ -10,10 +10,10 @@ from pinecone.model import *
 
 bssid_cache = set()
 
+
 @db_session
 def handle_beacon(pkt):
     bssid = pkt[Dot11].addr3
-
 
     if bssid in bssid_cache:
         return
@@ -31,11 +31,11 @@ def handle_beacon(pkt):
             channel = ord(p.info)
         elif p.ID == 48:
             crypto.add("WPA2")
-        elif p.ID == 221 and p.info.startswith(b'\x00P\xf2\x01\x01\x00'):
+        elif p.ID == 221 and p.info.startswith(b"\x00P\xf2\x01\x01\x00"):
             crypto.add("WPA")
         p = p.payload
     if not crypto:
-        if 'privacy' in cap:
+        if "privacy" in cap:
             crypto.add("WEP")
         else:
             crypto.add("OPN")
@@ -65,9 +65,9 @@ def handle_packet(packet):
         handle_beacon(packet)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--iface', help="mode monitor interface", required=True)
+    parser.add_argument("-i", "--iface", help="mode monitor interface", required=True)
     ops = parser.parse_args()
 
     # chann_hops = (1, 6, 11, 14, 2, 7, 12, 3, 8, 13, 4, 9, 5, 10)
@@ -76,15 +76,15 @@ if __name__ == '__main__':
     running = True
 
 
-    def sig_exit_hanlde(signal, frame):
+    def sig_exit_handle(signal, frame):
         global running
         running = False
 
         print("[i] Exiting...")
 
 
-    signal.signal(signal.SIGTERM, sig_exit_hanlde)
-    signal.signal(signal.SIGINT, sig_exit_hanlde)
+    signal.signal(signal.SIGTERM, sig_exit_handle)
+    signal.signal(signal.SIGINT, sig_exit_handle)
 
     while running:
 

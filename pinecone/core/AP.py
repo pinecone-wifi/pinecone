@@ -1,7 +1,9 @@
-from jinja2 import Template
+import sys
 from pathlib import Path
 from subprocess import Popen
-import sys
+
+from jinja2 import Template
+
 
 class AP:
     hostapdPath = r"hostapd"
@@ -37,4 +39,4 @@ class AP:
                                       encryption=self.encryption, passphrase=self.passphrase, ssid=self.essid)
         Path(AP.hostapdConfPath).write_text(hostapdConf)
 
-        self.hostapdProcess = Popen(["hostapd", AP.hostapdConfPath], stdout=sys.stdout, stderr=sys.stderr)
+        self.hostapdProcess = Popen([AP.hostapdPath, AP.hostapdConfPath], stdout=sys.stdout, stderr=sys.stderr)
