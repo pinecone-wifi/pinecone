@@ -7,7 +7,7 @@ from jinja2 import Template
 
 class AP:
     hostapdPath = r"hostapd"
-    hostapdConfTemplatePath = r"pinecone/core/hostapdTemplate.conf"
+    hostapdConfTemplatePath = r"pinecone/core/hostapd_template.conf"
     hostapdConfPath = r"hostapd.conf"
 
     def __init__(self, interface, channel, encryption, passphrase, essid):
