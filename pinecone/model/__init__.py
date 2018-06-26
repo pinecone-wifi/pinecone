@@ -1,8 +1,8 @@
 from pathlib import Path
 from sys import modules
 
-from .client import *
 from .service_set import *
+from .client import *
 
 DB_PATH = str(Path(Path(modules["__main__"].__file__).parent, "db", "database.sqlite").resolve())
 Path(DB_PATH).parent.mkdir(exist_ok=True)
