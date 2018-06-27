@@ -5,32 +5,51 @@ from subprocess import Popen
 from jinja2 import Template
 
 
-class AP:
-    hostapd_cmd = "hostapd"
-    hostapd_conf_template_path = Path(Path(__file__).parent, "hostapd_template.conf").resolve()
-    # TODO: Muliple APs configuration files.
-    hostapd_conf_path = Path(Path(sys.modules["__main__"].__file__).parent, "tmp", "hostapd.conf").resolve()
-    hostapd_conf_path.parent.mkdir(exist_ok=True)
+class DhcpConfig:
+    def __init__(self, start_addr, end_addr, lease_time):
+        self.config_dict = {
+            "start_addr": start_addr,
+            "end_addr": end_addr,
+            "lease_time": lease_time
+        }
 
-    dnsmasq_cmd = "dnsmasq"
-    dnsmasq_conf_template_path = Path(Path(__file__).parent, "dnsmasq_template.conf").resolve()
-    dnsmasq_conf_path = Path(Path(sys.modules["__main__"].__file__).parent, "tmp", "dnsmasq.conf").resolve()
-    dnsmasq_conf_path.parent.mkdir(exist_ok=True)
+    def __str__(self):
+        return "Start addr: {}\n" \
+               "End addr: {}\n" \
+               "Lease time: {}".format(self.config_dict["start_addr"], self.config_dict["end_addr"],
+                                       self.config_dict["lease_time"])
 
-    def __init__(self, interface, channel, encryption, passphrase, essid):
-        self.interface = interface
-        self.channel = channel
-        self.encryption = encryption
-        self.passphrase = passphrase
-        self.essid = essid
-        self.hostapd_process = None
+
+class WifiConfig:
+    def __init__(self, interface, channel, encryption, password, essid):
+        self.config_dict = {
+            "interface": interface,
+            "channel": channel,
+            "encryption": encryption,
+            "password": password,
+            "essid": essid
+        }
 
     def __str__(self):
         return "Interface: {}\n" \
-               "SSID: {}\n" \
                "Channel: {}\n" \
                "Encryption: {}\n" \
-               "Passphrase: {}".format(self.interface, self.essid, self.channel, self.encryption, self.passphrase)
+               "Password: {}\n" \
+               "ESSID: {}".format(self.config_dict["interface"], self.config_dict["channel"],
+                                  self.config_dict["encryption"], self.config_dict["password"],
+                                  self.config_dict["essid"])
+
+
+class HostapdHandler:
+    hostapd_cmd = "hostapd"
+    hostapd_conf_template_path = Path(Path(__file__).parent, "templates", "hostapd_template.conf").resolve()
+    # TODO: having only one config file allows only one AP to be up at a time.
+    hostapd_conf_path = Path(Path(sys.modules["__main__"].__file__).parent, "tmp", "hostapd.conf").resolve()
+    hostapd_conf_path.parent.mkdir(exist_ok=True)
+
+    def __init__(self, wifi_config):
+        self.wifi_config = wifi_config
+        self.hostapd_process = None
 
     def is_running(self):
         return self.hostapd_process is not None and self.hostapd_process.poll() is None
@@ -39,12 +58,66 @@ class AP:
         if self.is_running():
             self.hostapd_process.terminate()
 
-    def start(self):
-        template = Template(AP.hostapd_conf_template_path.read_text())
-        hostapd_conf = template.render(interface=self.interface, channel=self.channel,
-                                       encryption=self.encryption, passphrase=self.passphrase, ssid=self.essid)
-        AP.hostapd_conf_path.write_text(hostapd_conf)
-        self.hostapd_process = Popen([AP.hostapd_cmd, str(AP.hostapd_conf_path)], stdout=sys.stdout, stderr=sys.stderr)
+    def run(self):
+        template = Template(HostapdHandler.hostapd_conf_template_path.read_text())
+        hostapd_conf = template.render(self.wifi_config.config_dict)
+        HostapdHandler.hostapd_conf_path.write_text(hostapd_conf)
 
-        AP.dnsmasq_conf_path.write_text(AP.dnsmasq_conf_template_path.read_text())
-        Popen([AP.dnsmasq_cmd, "-C", str(AP.dnsmasq_conf_path)])
+        self.hostapd_process = Popen([HostapdHandler.hostapd_cmd, str(HostapdHandler.hostapd_conf_path)],
+                                     stdout=sys.stdout, stderr=sys.stderr)
+
+
+class DnsmasqHandler:
+    dnsmasq_cmd = "dnsmasq"
+    dnsmasq_conf_template_path = Path(Path(__file__).parent, "templates", "dnsmasq_template.conf").resolve()
+    dnsmasq_conf_path = Path(Path(sys.modules["__main__"].__file__).parent, "tmp", "dnsmasq.conf").resolve()
+    dnsmasq_conf_path.parent.mkdir(exist_ok=True)
+
+    def __init__(self, dhcp_config):
+        # TODO: IP config.
+        self.dhcp_config = dhcp_config
+
+    def is_running(self):
+        # TODO
+        pass
+
+    def stop(self):
+        # TODO
+        pass
+
+    def run(self):
+        template = Template(DnsmasqHandler.dnsmasq_conf_template_path.read_text())
+        dnsmasq_conf = template.render(self.dhcp_config.config_dict)
+        DnsmasqHandler.dnsmasq_conf_path.write_text(dnsmasq_conf)
+
+        Popen([DnsmasqHandler.dnsmasq_cmd, "-C", str(DnsmasqHandler.dnsmasq_conf_path)])
+
+
+class AP:
+    wifi_config: WifiConfig
+    dhcp_config: DhcpConfig
+
+    def __init__(self, wifi_config, dhcp_config):
+        self.wifi_config = wifi_config
+        self.dhcp_config = dhcp_config
+
+        self.hostapd_handler = HostapdHandler(self.wifi_config)
+        self.dnsmasq_handler = DnsmasqHandler(self.dhcp_config)
+
+    def __str__(self):
+        return "Wifi config:\n" \
+               "{}\n\n" \
+               "DHCP config:\n" \
+               "{}".format(self.wifi_config, self.dhcp_config)
+
+    def is_running(self):
+        # TODO
+        return self.hostapd_handler.is_running()
+
+    def stop(self):
+        self.hostapd_handler.stop()
+        self.dnsmasq_handler.stop()
+
+    def start(self):
+        self.hostapd_handler.run()
+        self.dnsmasq_handler.run()
