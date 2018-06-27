@@ -6,8 +6,8 @@ from jinja2 import Template
 
 
 class DhcpConfig:
-    def __init__(self, start_addr, end_addr, lease_time):
-        self.config_dict = {
+    def __init__(self, start_addr="192.168.0.50", end_addr="192.168.0.150", lease_time="12h"):
+        self.config = {
             "start_addr": start_addr,
             "end_addr": end_addr,
             "lease_time": lease_time
@@ -16,13 +16,13 @@ class DhcpConfig:
     def __str__(self):
         return "Start addr: {}\n" \
                "End addr: {}\n" \
-               "Lease time: {}".format(self.config_dict["start_addr"], self.config_dict["end_addr"],
-                                       self.config_dict["lease_time"])
+               "Lease time: {}".format(self.config["start_addr"], self.config["end_addr"],
+                                       self.config["lease_time"])
 
 
 class WifiConfig:
-    def __init__(self, interface, channel, encryption, password, essid):
-        self.config_dict = {
+    def __init__(self, interface="wlan0", channel=1, encryption="WPA2",password="password12345", essid="PINECONEWIFI"):
+        self.config = {
             "interface": interface,
             "channel": channel,
             "encryption": encryption,
@@ -35,9 +35,9 @@ class WifiConfig:
                "Channel: {}\n" \
                "Encryption: {}\n" \
                "Password: {}\n" \
-               "ESSID: {}".format(self.config_dict["interface"], self.config_dict["channel"],
-                                  self.config_dict["encryption"], self.config_dict["password"],
-                                  self.config_dict["essid"])
+               "ESSID: {}".format(self.config["interface"], self.config["channel"],
+                                  self.config["encryption"], self.config["password"],
+                                  self.config["essid"])
 
 
 class HostapdHandler:
@@ -60,7 +60,7 @@ class HostapdHandler:
 
     def run(self):
         template = Template(HostapdHandler.hostapd_conf_template_path.read_text())
-        hostapd_conf = template.render(self.wifi_config.config_dict)
+        hostapd_conf = template.render(self.wifi_config.config)
         HostapdHandler.hostapd_conf_path.write_text(hostapd_conf)
 
         self.hostapd_process = Popen([HostapdHandler.hostapd_cmd, str(HostapdHandler.hostapd_conf_path)],
@@ -87,16 +87,13 @@ class DnsmasqHandler:
 
     def run(self):
         template = Template(DnsmasqHandler.dnsmasq_conf_template_path.read_text())
-        dnsmasq_conf = template.render(self.dhcp_config.config_dict)
+        dnsmasq_conf = template.render(self.dhcp_config.config)
         DnsmasqHandler.dnsmasq_conf_path.write_text(dnsmasq_conf)
 
         Popen([DnsmasqHandler.dnsmasq_cmd, "-C", str(DnsmasqHandler.dnsmasq_conf_path)])
 
 
 class AP:
-    wifi_config: WifiConfig
-    dhcp_config: DhcpConfig
-
     def __init__(self, wifi_config, dhcp_config):
         self.wifi_config = wifi_config
         self.dhcp_config = dhcp_config
