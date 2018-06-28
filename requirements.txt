@@ -5,3 +5,4 @@ PyRIC
 pony
 scapy
 jinja2
+pathlib2
