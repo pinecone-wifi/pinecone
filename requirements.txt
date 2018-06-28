@@ -1,8 +1,8 @@
-#hostapd
-#dnsmasq
+#hostapd v2.4
+#dnsmasq v2.76
 
-PyRIC
-pony
-scapy
-jinja2
-pathlib2
+PyRIC==0.1.6.3
+pony==0.7.3
+scapy==2.4.0
+Jinja2==2.10
+pathlib2==2.3.2
