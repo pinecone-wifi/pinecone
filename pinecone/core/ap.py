@@ -1,6 +1,8 @@
+import subprocess
 import sys
-from subprocess import Popen
+from abc import ABC, abstractmethod
 
+import psutil
 from jinja2 import Template
 from pathlib2 import Path
 from pyric import pyw
@@ -40,6 +42,38 @@ class WifiConfig:
                "ESSID: {}".format(self.interface, self.channel, self.encryption, self.password, self.essid)
 
 
+class Handler(ABC):
+    @abstractmethod
+    def __init__(self):
+        self.process = None
+        self.process_name = None
+        self.config_template_path = None
+        self.config_path = None
+        self.config = None
+
+    @abstractmethod
+    def is_running(self):
+        return self.process is not None and self.process.is_running()
+
+    @abstractmethod
+    def stop(self):
+        if self.is_running():
+            self.process.terminate()
+
+    @abstractmethod
+    def run(self):
+        self.term_same_procs()
+
+        template = Template(self.config_template_path.read_text())
+        self.config_path.parent.mkdir(exist_ok=True)
+        self.config_path.write_text(template.render(vars(self.config)))
+
+    def term_same_procs(self):
+        for p in psutil.process_iter(attrs=["name"]):
+            if p.info["name"] == self.process_name:
+                p.terminate()
+
+
 class HostapdHandler:
     hostapd_cmd = "hostapd"
     hostapd_conf_template_path = Path(Path(__file__).parent, "templates", "hostapd_template.conf").resolve()
@@ -63,8 +97,8 @@ class HostapdHandler:
         HostapdHandler.hostapd_conf_path.parent.mkdir(exist_ok=True)
         HostapdHandler.hostapd_conf_path.write_text(hostapd_conf)
 
-        self.hostapd_process = Popen([HostapdHandler.hostapd_cmd, str(HostapdHandler.hostapd_conf_path)],
-                                     stdout=sys.stdout, stderr=sys.stderr)
+        self.hostapd_process = subprocess.Popen([HostapdHandler.hostapd_cmd, str(HostapdHandler.hostapd_conf_path)],
+                                                stdout=sys.stdout, stderr=sys.stderr)
 
 
 class DnsmasqHandler:
@@ -89,7 +123,7 @@ class DnsmasqHandler:
         DnsmasqHandler.dnsmasq_conf_path.parent.mkdir(exist_ok=True)
         DnsmasqHandler.dnsmasq_conf_path.write_text(dnsmasq_conf)
 
-        Popen([DnsmasqHandler.dnsmasq_cmd, "-C", str(DnsmasqHandler.dnsmasq_conf_path)])
+        subprocess.run([DnsmasqHandler.dnsmasq_cmd, "-C", str(DnsmasqHandler.dnsmasq_conf_path)])
 
 
 class AP:

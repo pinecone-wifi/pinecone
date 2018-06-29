@@ -6,3 +6,4 @@ pony==0.7.3
 scapy==2.4.0
 Jinja2==2.10
 pathlib2==2.3.2
+psutil==5.4.6
