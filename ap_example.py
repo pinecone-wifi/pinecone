@@ -2,11 +2,10 @@
 
 from pinecone.core.ap import *
 
-#wifi_config = WifiConfig("wlan0", 10, "WPA2", "password12345", "TP_LINK")
-#dhcp_config = DhcpConfig("192.168.0.50", "192.168.0.150", "12h")
-ap = AP(WifiConfig(channel=10, essid="TP_LINK"), DhcpConfig())
+ap = AP(WifiConfig(channel=10, essid="TP_LINK"))
 
-print("[i] Creating AP...\n"
+print("[i] Starting AP...\n"
+      "AP config:\n"
       "{}\n\n"
       "Press <enter> to stop the AP.\n\n".format(ap))
 ap.start()
