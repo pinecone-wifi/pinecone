@@ -1,4 +1,3 @@
-import subprocess
 import sys
 from abc import ABC, abstractmethod
 
@@ -42,25 +41,29 @@ class WifiConfig:
                "ESSID: {}".format(self.interface, self.channel, self.encryption, self.password, self.essid)
 
 
-class Handler(ABC):
-    @abstractmethod
-    def __init__(self):
-        self.process = None
-        self.process_name = None
-        self.config_template_path = None
-        self.config_path = None
-        self.config = None
+class DaemonHandler(ABC):
+    config_templates_folder_path = Path(Path(__file__).parent, "templates").resolve()
+    configs_folder_path = Path(Path(sys.modules["__main__"].__file__).parent, "tmp").resolve()
 
     @abstractmethod
+    def __init__(self, process_name, config_template_path, config_path, config):
+        self.process = None
+        self.process_name = process_name
+        self.config_template_path = config_template_path
+        self.config_path = config_path
+        self.config = config
+
     def is_running(self):
         return self.process is not None and self.process.is_running()
 
-    @abstractmethod
     def stop(self):
         if self.is_running():
             self.process.terminate()
 
     @abstractmethod
+    def launch(self):
+        pass
+
     def run(self):
         self.term_same_procs()
 
@@ -68,62 +71,39 @@ class Handler(ABC):
         self.config_path.parent.mkdir(exist_ok=True)
         self.config_path.write_text(template.render(vars(self.config)))
 
-    def term_same_procs(self):
+        if self.launch() == 0:
+            self.process = next(self.search_same_procs(), None)
+
+        return self.is_running()
+
+    def search_same_procs(self):
         for p in psutil.process_iter(attrs=["name"]):
             if p.info["name"] == self.process_name:
-                p.terminate()
+                yield p
+
+    def term_same_procs(self):
+        for p in self.search_same_procs():
+            p.terminate()
 
 
-class HostapdHandler:
-    hostapd_cmd = "hostapd"
-    hostapd_conf_template_path = Path(Path(__file__).parent, "templates", "hostapd_template.conf").resolve()
-    # TODO: having only one config file allows only one AP to be up at a time.
-    hostapd_conf_path = Path(Path(sys.modules["__main__"].__file__).parent, "tmp", "hostapd.conf").resolve()
-
+class HostapdHandler(DaemonHandler):
     def __init__(self, wifi_config=WifiConfig()):
-        self.wifi_config = wifi_config
-        self.hostapd_process = None
+        super().__init__("hostapd", Path(DaemonHandler.config_templates_folder_path, "hostapd_template.conf").resolve(),
+                         Path(DaemonHandler.configs_folder_path, "hostapd.conf").resolve(),
+                         wifi_config)
 
-    def is_running(self):
-        return self.hostapd_process is not None and self.hostapd_process.poll() is None
-
-    def stop(self):
-        if self.is_running():
-            self.hostapd_process.terminate()
-
-    def run(self):
-        template = Template(HostapdHandler.hostapd_conf_template_path.read_text())
-        hostapd_conf = template.render(vars(self.wifi_config))
-        HostapdHandler.hostapd_conf_path.parent.mkdir(exist_ok=True)
-        HostapdHandler.hostapd_conf_path.write_text(hostapd_conf)
-
-        self.hostapd_process = subprocess.Popen([HostapdHandler.hostapd_cmd, str(HostapdHandler.hostapd_conf_path)],
-                                                stdout=sys.stdout, stderr=sys.stderr)
+    def launch(self):
+        return psutil.Popen([self.process_name, "-B", str(self.config_path)]).wait()
 
 
-class DnsmasqHandler:
-    dnsmasq_cmd = "dnsmasq"
-    dnsmasq_conf_template_path = Path(Path(__file__).parent, "templates", "dnsmasq_template.conf").resolve()
-    dnsmasq_conf_path = Path(Path(sys.modules["__main__"].__file__).parent, "tmp", "dnsmasq.conf").resolve()
-
+class DnsmasqHandler(DaemonHandler):
     def __init__(self, lan_config=LanConfig()):
-        self.lan_config = lan_config
+        super().__init__("dnsmasq", Path(DaemonHandler.config_templates_folder_path, "dnsmasq_template.conf").resolve(),
+                         Path(DaemonHandler.configs_folder_path, "dnsmasq.conf").resolve(),
+                         lan_config)
 
-    def is_running(self):
-        # TODO
-        pass
-
-    def stop(self):
-        # TODO
-        pass
-
-    def run(self):
-        template = Template(DnsmasqHandler.dnsmasq_conf_template_path.read_text())
-        dnsmasq_conf = template.render(vars(self.lan_config))
-        DnsmasqHandler.dnsmasq_conf_path.parent.mkdir(exist_ok=True)
-        DnsmasqHandler.dnsmasq_conf_path.write_text(dnsmasq_conf)
-
-        subprocess.run([DnsmasqHandler.dnsmasq_cmd, "-C", str(DnsmasqHandler.dnsmasq_conf_path)])
+    def launch(self):
+        return psutil.Popen([self.process_name, "-C", str(self.config_path)]).wait()
 
 
 class AP:
@@ -141,8 +121,7 @@ class AP:
                "{}".format(self.wifi_config, self.lan_config)
 
     def is_running(self):
-        # TODO
-        return self.hostapd_handler.is_running()
+        return self.hostapd_handler.is_running() and self.dnsmasq_handler.is_running()
 
     def stop(self):
         self.hostapd_handler.stop()
