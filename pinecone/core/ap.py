@@ -1,10 +1,15 @@
 import sys
 from abc import ABC, abstractmethod
+from subprocess import run
 
-import psutil
+from psutil import process_iter
 from jinja2 import Template
 from pathlib2 import Path
 from pyric import pyw
+
+CONFIG_TEMPLATES_FOLDER_PATH = Path(Path(__file__).parent, "templates").resolve()
+CONFIGS_FOLDER_PATH = Path(Path(sys.modules["__main__"].__file__).parent, "tmp").resolve()
+CONFIGS_FOLDER_PATH.mkdir(exist_ok=True)
 
 
 class LanConfig:
@@ -42,9 +47,6 @@ class WifiConfig:
 
 
 class DaemonHandler(ABC):
-    config_templates_folder_path = Path(Path(__file__).parent, "templates").resolve()
-    configs_folder_path = Path(Path(sys.modules["__main__"].__file__).parent, "tmp").resolve()
-
     @abstractmethod
     def __init__(self, process_name, config_template_path, config_path, config):
         self.process = None
@@ -68,7 +70,6 @@ class DaemonHandler(ABC):
         self.term_same_procs()
 
         template = Template(self.config_template_path.read_text())
-        self.config_path.parent.mkdir(exist_ok=True)
         self.config_path.write_text(template.render(vars(self.config)))
 
         if self.launch() == 0:
@@ -77,7 +78,7 @@ class DaemonHandler(ABC):
         return self.is_running()
 
     def search_same_procs(self):
-        for p in psutil.process_iter(attrs=["name"]):
+        for p in process_iter(attrs=["name"]):
             if p.info["name"] == self.process_name:
                 yield p
 
@@ -88,22 +89,22 @@ class DaemonHandler(ABC):
 
 class HostapdHandler(DaemonHandler):
     def __init__(self, wifi_config=WifiConfig()):
-        super().__init__("hostapd", Path(DaemonHandler.config_templates_folder_path, "hostapd_template.conf").resolve(),
-                         Path(DaemonHandler.configs_folder_path, "hostapd.conf").resolve(),
+        super().__init__("hostapd", Path(CONFIG_TEMPLATES_FOLDER_PATH, "hostapd_template.conf").resolve(),
+                         Path(CONFIGS_FOLDER_PATH, "hostapd.conf").resolve(),
                          wifi_config)
 
     def launch(self):
-        return psutil.Popen([self.process_name, "-B", str(self.config_path)]).wait()
+        return run([self.process_name, "-B", str(self.config_path)]).returncode
 
 
 class DnsmasqHandler(DaemonHandler):
     def __init__(self, lan_config=LanConfig()):
-        super().__init__("dnsmasq", Path(DaemonHandler.config_templates_folder_path, "dnsmasq_template.conf").resolve(),
-                         Path(DaemonHandler.configs_folder_path, "dnsmasq.conf").resolve(),
+        super().__init__("dnsmasq", Path(CONFIG_TEMPLATES_FOLDER_PATH, "dnsmasq_template.conf").resolve(),
+                         Path(CONFIGS_FOLDER_PATH, "dnsmasq.conf").resolve(),
                          lan_config)
 
     def launch(self):
-        return psutil.Popen([self.process_name, "-C", str(self.config_path)]).wait()
+        return run([self.process_name, "-C", str(self.config_path)]).returncode
 
 
 class AP:
@@ -132,3 +133,13 @@ class AP:
         self.dnsmasq_handler.run()
 
         pyw.ifaddrset(pyw.getcard(self.wifi_config.interface), self.lan_config.router_ip, self.lan_config.netmask)
+
+        # TODO: mejorar.
+        router_config_template = Template(Path(CONFIG_TEMPLATES_FOLDER_PATH, "firewall_config_template.sh").resolve().read_text())
+        Path(CONFIGS_FOLDER_PATH, "firewall_config.sh").resolve().write_text(router_config_template.render({
+            "subnet": "192.168.0.0",
+            "netmask": "255.255.255.0",
+            "output_iface": "eth0"
+        }))
+
+        run([str(Path(CONFIGS_FOLDER_PATH, "firewall_config.sh").resolve())])
