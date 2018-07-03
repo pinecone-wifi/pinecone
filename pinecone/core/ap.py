@@ -1,22 +1,22 @@
 import sys
 from abc import ABC, abstractmethod
+from ipaddress import ip_network
 from subprocess import run
 
-from psutil import process_iter
+import iptc
 from jinja2 import Template
 from pathlib2 import Path
+from psutil import process_iter
 from pyric import pyw
-
-CONFIG_TEMPLATES_FOLDER_PATH = Path(Path(__file__).parent, "templates").resolve()
-CONFIGS_FOLDER_PATH = Path(Path(sys.modules["__main__"].__file__).parent, "tmp").resolve()
-CONFIGS_FOLDER_PATH.mkdir(exist_ok=True)
 
 
 class LanConfig:
-    def __init__(self, router_ip="192.168.0.1", netmask="255.255.255.0", dhcp_start_addr="192.168.0.50",
-                 dhcp_end_addr="192.168.0.150", dhcp_lease_time="12h"):
+    def __init__(self, router_ip="192.168.0.1", netmask="255.255.255.0", out_iface="eth0",
+                 dhcp_start_addr="192.168.0.50", dhcp_end_addr="192.168.0.150", dhcp_lease_time="12h"):
         self.router_ip = router_ip
         self.netmask = netmask
+        self.network = str(ip_network("{}/{}".format(self.router_ip, self.netmask), strict=False))
+        self.out_iface = out_iface
         self.dhcp_start_addr = dhcp_start_addr
         self.dhcp_end_addr = dhcp_end_addr
         self.dhcp_lease_time = dhcp_lease_time
@@ -24,10 +24,12 @@ class LanConfig:
     def __str__(self):
         return "Router IP: {}\n" \
                "Netmask: {}\n" \
+               "Network: {}\n" \
+               "Out interface: {}\n" \
                "DHCP start addr: {}\n" \
                "DHCP end addr: {}\n" \
-               "DHCP lease time: {}".format(self.router_ip, self.netmask, self.dhcp_start_addr, self.dhcp_end_addr,
-                                            self.dhcp_lease_time)
+               "DHCP lease time: {}".format(self.router_ip, self.netmask, self.network, self.out_iface,
+                                            self.dhcp_start_addr, self.dhcp_end_addr, self.dhcp_lease_time)
 
 
 class WifiConfig:
@@ -47,6 +49,9 @@ class WifiConfig:
 
 
 class DaemonHandler(ABC):
+    config_templates_folder_path = Path(Path(__file__).parent, "templates").resolve()
+    configs_folder_path = Path(Path(sys.modules["__main__"].__file__).parent, "tmp").resolve()
+
     @abstractmethod
     def __init__(self, process_name, config_template_path, config_path, config):
         self.process = None
@@ -70,6 +75,7 @@ class DaemonHandler(ABC):
         self.term_same_procs()
 
         template = Template(self.config_template_path.read_text())
+        DaemonHandler.configs_folder_path.mkdir(exist_ok=True)
         self.config_path.write_text(template.render(vars(self.config)))
 
         if self.launch() == 0:
@@ -89,9 +95,8 @@ class DaemonHandler(ABC):
 
 class HostapdHandler(DaemonHandler):
     def __init__(self, wifi_config=WifiConfig()):
-        super().__init__("hostapd", Path(CONFIG_TEMPLATES_FOLDER_PATH, "hostapd_template.conf").resolve(),
-                         Path(CONFIGS_FOLDER_PATH, "hostapd.conf").resolve(),
-                         wifi_config)
+        super().__init__("hostapd", Path(DaemonHandler.config_templates_folder_path, "hostapd_template.conf").resolve(),
+                         Path(DaemonHandler.configs_folder_path, "hostapd.conf").resolve(), wifi_config)
 
     def launch(self):
         return run([self.process_name, "-B", str(self.config_path)]).returncode
@@ -99,9 +104,8 @@ class HostapdHandler(DaemonHandler):
 
 class DnsmasqHandler(DaemonHandler):
     def __init__(self, lan_config=LanConfig()):
-        super().__init__("dnsmasq", Path(CONFIG_TEMPLATES_FOLDER_PATH, "dnsmasq_template.conf").resolve(),
-                         Path(CONFIGS_FOLDER_PATH, "dnsmasq.conf").resolve(),
-                         lan_config)
+        super().__init__("dnsmasq", Path(DaemonHandler.config_templates_folder_path, "dnsmasq_template.conf").resolve(),
+                         Path(DaemonHandler.configs_folder_path, "dnsmasq.conf").resolve(), lan_config)
 
     def launch(self):
         return run([self.process_name, "-C", str(self.config_path)]).returncode
@@ -128,18 +132,21 @@ class AP:
         self.hostapd_handler.stop()
         self.dnsmasq_handler.stop()
 
+        run(["sysctl", "-w", "net.ipv4.ip_forward=0"])
+
+        iptc.Table(iptc.Table.NAT).flush()
+
     def start(self):
         self.hostapd_handler.run()
         self.dnsmasq_handler.run()
 
         pyw.ifaddrset(pyw.getcard(self.wifi_config.interface), self.lan_config.router_ip, self.lan_config.netmask)
 
-        # TODO: mejorar.
-        router_config_template = Template(Path(CONFIG_TEMPLATES_FOLDER_PATH, "firewall_config_template.sh").resolve().read_text())
-        Path(CONFIGS_FOLDER_PATH, "firewall_config.sh").resolve().write_text(router_config_template.render({
-            "subnet": "192.168.0.0",
-            "netmask": "255.255.255.0",
-            "output_iface": "eth0"
-        }))
+        run(["sysctl", "-w", "net.ipv4.ip_forward=1"])
 
-        run([str(Path(CONFIGS_FOLDER_PATH, "firewall_config.sh").resolve())])
+        iptc.Table(iptc.Table.NAT).flush()
+        nat_rule = iptc.Rule()
+        nat_rule.src = self.lan_config.network
+        nat_rule.out_interface = self.lan_config.out_iface
+        nat_rule.target = nat_rule.create_target("MASQUERADE")
+        iptc.Chain(iptc.Table(iptc.Table.NAT), "POSTROUTING").append_rule(nat_rule)
