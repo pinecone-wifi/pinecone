@@ -1,7 +1,8 @@
-import sys
 from abc import ABC, abstractmethod
+from copy import copy
 from ipaddress import ip_network
 from subprocess import run
+from sys import modules
 
 import iptc
 from jinja2 import Template
@@ -49,8 +50,8 @@ class WifiConfig:
 
 
 class DaemonHandler(ABC):
-    config_templates_folder_path = Path(Path(__file__).parent, "templates").resolve()
-    configs_folder_path = Path(Path(sys.modules["__main__"].__file__).parent, "tmp").resolve()
+    templates_folder_path = Path(Path(__file__).parent, "templates").resolve()
+    tmp_folder_path = Path(Path(modules["__main__"].__file__).parent, "tmp").resolve()
 
     @abstractmethod
     def __init__(self, process_name, config_template_path, config_path, config):
@@ -74,9 +75,9 @@ class DaemonHandler(ABC):
     def run(self):
         self.term_same_procs()
 
-        template = Template(self.config_template_path.read_text())
-        DaemonHandler.configs_folder_path.mkdir(exist_ok=True)
-        self.config_path.write_text(template.render(vars(self.config)))
+        config_template = Template(self.config_template_path.read_text())
+        DaemonHandler.tmp_folder_path.mkdir(exist_ok=True)
+        self.config_path.write_text(config_template.render(vars(self.config)))
 
         if self.launch() == 0:
             self.process = next(self.search_same_procs(), None)
@@ -94,25 +95,58 @@ class DaemonHandler(ABC):
 
 
 class HostapdHandler(DaemonHandler):
-    def __init__(self, wifi_config=WifiConfig()):
-        super().__init__("hostapd", Path(DaemonHandler.config_templates_folder_path, "hostapd_template.conf").resolve(),
-                         Path(DaemonHandler.configs_folder_path, "hostapd.conf").resolve(), wifi_config)
+    def __init__(self, wifi_config=None):
+        if wifi_config is None:
+            wifi_config = WifiConfig()
+
+        super().__init__("hostapd", Path(DaemonHandler.templates_folder_path, "hostapd_template.conf").resolve(),
+                         Path(DaemonHandler.tmp_folder_path, "hostapd.conf").resolve(), wifi_config)
 
     def launch(self):
         return run([self.process_name, "-B", str(self.config_path)]).returncode
 
 
 class DnsmasqHandler(DaemonHandler):
-    def __init__(self, lan_config=LanConfig()):
-        super().__init__("dnsmasq", Path(DaemonHandler.config_templates_folder_path, "dnsmasq_template.conf").resolve(),
-                         Path(DaemonHandler.configs_folder_path, "dnsmasq.conf").resolve(), lan_config)
+    custom_hosts_template_path = Path(DaemonHandler.templates_folder_path, "dnsmasq_custom_hosts_template").resolve()
+    custom_hosts_path = Path(DaemonHandler.tmp_folder_path, "dnsmasq_custom_hosts").resolve()
+
+    def __init__(self, lan_config=None, custom_hosts=None):
+        if (lan_config is None):
+            lan_config = LanConfig()
+
+        if (custom_hosts is None):
+            custom_hosts = dict()
+
+        self.custom_hosts = custom_hosts
+
+        config = copy(lan_config)
+        config.custom_hosts_path = DnsmasqHandler.custom_hosts_path
+
+        super().__init__("dnsmasq", Path(DaemonHandler.templates_folder_path, "dnsmasq_template.conf").resolve(),
+                         Path(DaemonHandler.tmp_folder_path, "dnsmasq.conf").resolve(), config)
 
     def launch(self):
         return run([self.process_name, "-C", str(self.config_path)]).returncode
 
+    def render_custom_hosts_file(self):
+        custom_hosts_template = Template(DnsmasqHandler.custom_hosts_template_path.read_text())
+        DaemonHandler.tmp_folder_path.mkdir(exist_ok=True)
+        DnsmasqHandler.custom_hosts_path.write_text(custom_hosts_template.render(custom_hosts=self.custom_hosts))
+
+    def run(self):
+        self.render_custom_hosts_file()
+
+        super().run()
+
 
 class AP:
-    def __init__(self, wifi_config=WifiConfig(), lan_config=LanConfig()):
+    def __init__(self, wifi_config=None, lan_config=None):
+        if (wifi_config is None):
+            wifi_config = WifiConfig()
+
+        if (lan_config is None):
+            lan_config = LanConfig()
+
         self.wifi_config = wifi_config
         self.lan_config = lan_config
 

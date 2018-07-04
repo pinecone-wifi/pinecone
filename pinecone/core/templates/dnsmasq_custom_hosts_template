@@ -1,0 +1,3 @@
+{% for domain, ip in custom_hosts.items() %}
+{{ ip }}	{{ domain }}
+{% endfor %}
