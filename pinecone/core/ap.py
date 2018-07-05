@@ -1,3 +1,4 @@
+import signal
 from abc import ABC, abstractmethod
 from copy import copy
 from ipaddress import ip_network
@@ -128,6 +129,11 @@ class DnsmasqHandler(DaemonHandler):
     def launch(self):
         return run([self.process_name, "-C", str(self.config_path)]).returncode
 
+    def reload_custom_hosts(self):
+        if self.is_running():
+            self.render_custom_hosts_file()
+            self.process.send_signal(signal.SIGHUP)
+
     def render_custom_hosts_file(self):
         custom_hosts_template = Template(DnsmasqHandler.custom_hosts_template_path.read_text())
         DaemonHandler.tmp_folder_path.mkdir(exist_ok=True)
@@ -140,18 +146,22 @@ class DnsmasqHandler(DaemonHandler):
 
 
 class AP:
-    def __init__(self, wifi_config=None, lan_config=None):
+    def __init__(self, wifi_config=None, lan_config=None, dns_custom_hosts=None):
         if (wifi_config is None):
             wifi_config = WifiConfig()
 
         if (lan_config is None):
             lan_config = LanConfig()
 
+        if (dns_custom_hosts is None):
+            dns_custom_hosts = dict()
+
         self.wifi_config = wifi_config
         self.lan_config = lan_config
+        self.dns_custom_hosts = dns_custom_hosts
 
         self.hostapd_handler = HostapdHandler(self.wifi_config)
-        self.dnsmasq_handler = DnsmasqHandler(self.lan_config)
+        self.dnsmasq_handler = DnsmasqHandler(self.lan_config, self.dns_custom_hosts)
 
     def __str__(self):
         return "Wifi config:\n" \
@@ -161,6 +171,9 @@ class AP:
 
     def is_running(self):
         return self.hostapd_handler.is_running() and self.dnsmasq_handler.is_running()
+
+    def reload_custom_hosts(self):
+        self.dnsmasq_handler.reload_custom_hosts()
 
     def stop(self):
         self.hostapd_handler.stop()
