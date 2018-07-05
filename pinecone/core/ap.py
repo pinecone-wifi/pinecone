@@ -4,6 +4,7 @@ from copy import copy
 from ipaddress import ip_network
 from subprocess import run
 from sys import modules
+import typing
 
 import iptc
 from jinja2 import Template
@@ -55,7 +56,7 @@ class DaemonHandler(ABC):
     tmp_folder_path = Path(Path(modules["__main__"].__file__).parent, "tmp").resolve()
 
     @abstractmethod
-    def __init__(self, process_name, config_template_path, config_path, config):
+    def __init__(self, process_name: str, config_template_path: Path, config_path: Path, config):
         self.process = None
         self.process_name = process_name
         self.config_template_path = config_template_path
@@ -96,7 +97,7 @@ class DaemonHandler(ABC):
 
 
 class HostapdHandler(DaemonHandler):
-    def __init__(self, wifi_config=None):
+    def __init__(self, wifi_config: WifiConfig = None):
         if wifi_config is None:
             wifi_config = WifiConfig()
 
@@ -111,11 +112,11 @@ class DnsmasqHandler(DaemonHandler):
     custom_hosts_template_path = Path(DaemonHandler.templates_folder_path, "dnsmasq_custom_hosts_template").resolve()
     custom_hosts_path = Path(DaemonHandler.tmp_folder_path, "dnsmasq_custom_hosts").resolve()
 
-    def __init__(self, lan_config=None, custom_hosts=None):
-        if (lan_config is None):
+    def __init__(self, lan_config: LanConfig = None, custom_hosts: typing.Dict[str, str] = None):
+        if lan_config is None:
             lan_config = LanConfig()
 
-        if (custom_hosts is None):
+        if custom_hosts is None:
             custom_hosts = dict()
 
         self.custom_hosts = custom_hosts
@@ -146,14 +147,15 @@ class DnsmasqHandler(DaemonHandler):
 
 
 class AP:
-    def __init__(self, wifi_config=None, lan_config=None, dns_custom_hosts=None):
-        if (wifi_config is None):
+    def __init__(self, wifi_config: WifiConfig = None, lan_config: LanConfig = None,
+                 dns_custom_hosts: typing.Dict[str, str] = None):
+        if wifi_config is None:
             wifi_config = WifiConfig()
 
-        if (lan_config is None):
+        if lan_config is None:
             lan_config = LanConfig()
 
-        if (dns_custom_hosts is None):
+        if dns_custom_hosts is None:
             dns_custom_hosts = dict()
 
         self.wifi_config = wifi_config
