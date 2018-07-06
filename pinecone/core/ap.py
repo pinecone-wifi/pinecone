@@ -74,7 +74,7 @@ class DaemonHandler(ABC):
     def launch(self):
         pass
 
-    def run(self):
+    def run(self) -> bool:
         self.term_same_procs()
 
         config_template = Template(self.config_template_path.read_text())
@@ -111,7 +111,7 @@ class HostapdHandler(DaemonHandler):
     def launch(self):
         return run([self.process_name, "-B", str(self.config_path)]).returncode
 
-    def run(self):
+    def run(self) -> bool:
         for wpaSupplicantProc in DaemonHandler.search_procs("wpa_supplicant"):
             if any(self.config.interface in cmdLine for cmdLine in wpaSupplicantProc.cmdline()):
                 wpaSupplicantProc.terminate()
@@ -151,7 +151,7 @@ class DnsmasqHandler(DaemonHandler):
         DaemonHandler.tmp_folder_path.mkdir(exist_ok=True)
         DnsmasqHandler.custom_hosts_path.write_text(custom_hosts_template.render(custom_hosts=self.custom_hosts))
 
-    def run(self):
+    def run(self) -> bool:
         self.render_custom_hosts_file()
 
         return super().run()
@@ -196,7 +196,7 @@ class AP:
 
         iptc.Table(iptc.Table.NAT).flush()
 
-    def start(self):
+    def start(self) -> bool:
         self.hostapd_handler.run()
         self.dnsmasq_handler.run()
 
