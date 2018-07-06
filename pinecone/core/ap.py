@@ -1,10 +1,10 @@
 import signal
+import typing
 from abc import ABC, abstractmethod
 from copy import copy
 from ipaddress import ip_network
 from subprocess import run
 from sys import modules
-import typing
 
 import iptc
 from jinja2 import Template
@@ -86,10 +86,14 @@ class DaemonHandler(ABC):
 
         return self.is_running()
 
-    def search_same_procs(self):
+    @staticmethod
+    def search_procs(process_name):
         for p in process_iter(attrs=["name"]):
-            if p.info["name"] == self.process_name:
+            if p.info["name"] == process_name:
                 yield p
+
+    def search_same_procs(self):
+        return DaemonHandler.search_procs(self.process_name)
 
     def term_same_procs(self):
         for p in self.search_same_procs():
@@ -106,6 +110,13 @@ class HostapdHandler(DaemonHandler):
 
     def launch(self):
         return run([self.process_name, "-B", str(self.config_path)]).returncode
+
+    def run(self):
+        for wpaSupplicantProc in DaemonHandler.search_procs("wpa_supplicant"):
+            if any(self.config.interface in cmdLine for cmdLine in wpaSupplicantProc.cmdline()):
+                wpaSupplicantProc.terminate()
+
+        return super().run()
 
 
 class DnsmasqHandler(DaemonHandler):
@@ -143,7 +154,7 @@ class DnsmasqHandler(DaemonHandler):
     def run(self):
         self.render_custom_hosts_file()
 
-        super().run()
+        return super().run()
 
 
 class AP:
@@ -199,3 +210,5 @@ class AP:
         nat_rule.out_interface = self.lan_config.out_iface
         nat_rule.target = nat_rule.create_target("MASQUERADE")
         iptc.Chain(iptc.Table(iptc.Table.NAT), "POSTROUTING").append_rule(nat_rule)
+
+        return self.is_running()

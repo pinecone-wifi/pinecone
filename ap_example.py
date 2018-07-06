@@ -9,9 +9,12 @@ ap = AP(WifiConfig(interface="wlan0", channel=1, encryption="WPA2", password="pa
 
 print("[i] Starting AP...\n"
       "AP config:\n"
-      "{}\n\n"
-      "Press <enter> to stop the AP.\n\n".format(ap))
+      "{}\n\n".format(ap))
 
-ap.start()
-input()
-ap.stop()
+if ap.start():
+    print("\n\nAP started correctly!\n\nPress <enter> to stop the AP.")
+    input()
+    ap.stop()
+else:
+    print("\n\nERROR: AP didn't start correctly!")
+    ap.stop()
