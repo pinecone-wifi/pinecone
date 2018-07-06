@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+from sys import stdin
+
 from pinecone.core.ap import *
 
 ap = AP(WifiConfig(interface="wlan0", channel=1, encryption="WPA2", password="password12345", essid="TP_LINK"),
@@ -7,14 +9,20 @@ ap = AP(WifiConfig(interface="wlan0", channel=1, encryption="WPA2", password="pa
                   dhcp_end_addr="192.168.0.150", dhcp_lease_time="12h"),
         {"www.facebook.com": "127.0.0.1", "www.google.com": "127.0.0.1"})
 
-print("[i] Starting AP...\n"
-      "AP config:\n"
-      "{}\n\n".format(ap))
+print("AP config:\n"
+      "{}\n".format(ap))
 
-if ap.start():
-    print("\n\nAP started correctly!\n\nPress <enter> to stop the AP.")
-    input()
-    ap.stop()
-else:
-    print("\n\nERROR: AP didn't start correctly!")
-    ap.stop()
+while True:
+    print("\nCommand (start|stop|exit): ", end="")
+    cmd = input()
+
+    if cmd == "start":
+        if ap.start():
+            print("\nAP started correctly!\n")
+        else:
+            print("\nERROR: AP didn't start correctly!\n")
+    elif cmd == "stop":
+        print("\nStopping AP...\n")
+        ap.stop()
+    elif cmd == "exit":
+        break

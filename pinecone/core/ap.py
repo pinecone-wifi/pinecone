@@ -18,11 +18,14 @@ class LanConfig:
                  dhcp_start_addr="192.168.0.50", dhcp_end_addr="192.168.0.150", dhcp_lease_time="12h"):
         self.router_ip = router_ip
         self.netmask = netmask
-        self.network = str(ip_network("{}/{}".format(self.router_ip, self.netmask), strict=False))
         self.out_iface = out_iface
         self.dhcp_start_addr = dhcp_start_addr
         self.dhcp_end_addr = dhcp_end_addr
         self.dhcp_lease_time = dhcp_lease_time
+
+    @property
+    def network(self):
+        return str(ip_network("{}/{}".format(self.router_ip, self.netmask), strict=False))
 
     def __str__(self):
         return "Router IP: {}\n" \
@@ -51,7 +54,7 @@ class WifiConfig:
                "ESSID: {}".format(self.interface, self.channel, self.encryption, self.password, self.essid)
 
 
-class DaemonHandler(ABC):
+class _DaemonHandler(ABC):
     templates_folder_path = Path(Path(__file__).parent, "templates").resolve()
     tmp_folder_path = Path(Path(modules["__main__"].__file__).parent, "tmp").resolve()
 
@@ -69,59 +72,60 @@ class DaemonHandler(ABC):
     def stop(self):
         if self.is_running():
             self.process.terminate()
+            self.process = None
 
     @abstractmethod
-    def launch(self):
+    def _launch(self):
         pass
 
     def run(self) -> bool:
-        self.term_same_procs()
+        self._term_same_procs()
 
         config_template = Template(self.config_template_path.read_text())
-        DaemonHandler.tmp_folder_path.mkdir(exist_ok=True)
+        _DaemonHandler.tmp_folder_path.mkdir(exist_ok=True)
         self.config_path.write_text(config_template.render(vars(self.config)))
 
-        if self.launch() == 0:
-            self.process = next(self.search_same_procs(), None)
+        if self._launch() == 0:
+            self.process = next(self._search_same_procs(), None)
 
         return self.is_running()
 
     @staticmethod
-    def search_procs(process_name):
+    def _search_procs(process_name):
         for p in process_iter(attrs=["name"]):
             if p.info["name"] == process_name:
                 yield p
 
-    def search_same_procs(self):
-        return DaemonHandler.search_procs(self.process_name)
+    def _search_same_procs(self):
+        return _DaemonHandler._search_procs(self.process_name)
 
-    def term_same_procs(self):
-        for p in self.search_same_procs():
+    def _term_same_procs(self):
+        for p in self._search_same_procs():
             p.terminate()
 
 
-class HostapdHandler(DaemonHandler):
+class _HostapdHandler(_DaemonHandler):
     def __init__(self, wifi_config: WifiConfig = None):
         if wifi_config is None:
             wifi_config = WifiConfig()
 
-        super().__init__("hostapd", Path(DaemonHandler.templates_folder_path, "hostapd_template.conf").resolve(),
-                         Path(DaemonHandler.tmp_folder_path, "hostapd.conf").resolve(), wifi_config)
+        super().__init__("hostapd", Path(_DaemonHandler.templates_folder_path, "hostapd_template.conf").resolve(),
+                         Path(_DaemonHandler.tmp_folder_path, "hostapd.conf").resolve(), wifi_config)
 
-    def launch(self):
+    def _launch(self):
         return run([self.process_name, "-B", str(self.config_path)]).returncode
 
     def run(self) -> bool:
-        for wpaSupplicantProc in DaemonHandler.search_procs("wpa_supplicant"):
+        for wpaSupplicantProc in _DaemonHandler._search_procs("wpa_supplicant"):
             if any(self.config.interface in cmdLine for cmdLine in wpaSupplicantProc.cmdline()):
                 wpaSupplicantProc.terminate()
 
         return super().run()
 
 
-class DnsmasqHandler(DaemonHandler):
-    custom_hosts_template_path = Path(DaemonHandler.templates_folder_path, "dnsmasq_custom_hosts_template").resolve()
-    custom_hosts_path = Path(DaemonHandler.tmp_folder_path, "dnsmasq_custom_hosts").resolve()
+class _DnsmasqHandler(_DaemonHandler):
+    custom_hosts_template_path = Path(_DaemonHandler.templates_folder_path, "dnsmasq_custom_hosts_template").resolve()
+    custom_hosts_path = Path(_DaemonHandler.tmp_folder_path, "dnsmasq_custom_hosts").resolve()
 
     def __init__(self, lan_config: LanConfig = None, custom_hosts: typing.Dict[str, str] = None):
         if lan_config is None:
@@ -133,26 +137,26 @@ class DnsmasqHandler(DaemonHandler):
         self.custom_hosts = custom_hosts
 
         config = copy(lan_config)
-        config.custom_hosts_path = DnsmasqHandler.custom_hosts_path
+        config.custom_hosts_path = _DnsmasqHandler.custom_hosts_path
 
-        super().__init__("dnsmasq", Path(DaemonHandler.templates_folder_path, "dnsmasq_template.conf").resolve(),
-                         Path(DaemonHandler.tmp_folder_path, "dnsmasq.conf").resolve(), config)
+        super().__init__("dnsmasq", Path(_DaemonHandler.templates_folder_path, "dnsmasq_template.conf").resolve(),
+                         Path(_DaemonHandler.tmp_folder_path, "dnsmasq.conf").resolve(), config)
 
-    def launch(self):
+    def _launch(self):
         return run([self.process_name, "-C", str(self.config_path)]).returncode
 
     def reload_custom_hosts(self):
         if self.is_running():
-            self.render_custom_hosts_file()
+            self._render_custom_hosts_file()
             self.process.send_signal(signal.SIGHUP)
 
-    def render_custom_hosts_file(self):
-        custom_hosts_template = Template(DnsmasqHandler.custom_hosts_template_path.read_text())
-        DaemonHandler.tmp_folder_path.mkdir(exist_ok=True)
-        DnsmasqHandler.custom_hosts_path.write_text(custom_hosts_template.render(custom_hosts=self.custom_hosts))
+    def _render_custom_hosts_file(self):
+        custom_hosts_template = Template(_DnsmasqHandler.custom_hosts_template_path.read_text())
+        _DaemonHandler.tmp_folder_path.mkdir(exist_ok=True)
+        _DnsmasqHandler.custom_hosts_path.write_text(custom_hosts_template.render(custom_hosts=self.custom_hosts))
 
     def run(self) -> bool:
-        self.render_custom_hosts_file()
+        self._render_custom_hosts_file()
 
         return super().run()
 
@@ -173,8 +177,8 @@ class AP:
         self.lan_config = lan_config
         self.dns_custom_hosts = dns_custom_hosts
 
-        self.hostapd_handler = HostapdHandler(self.wifi_config)
-        self.dnsmasq_handler = DnsmasqHandler(self.lan_config, self.dns_custom_hosts)
+        self._hostapd_handler = _HostapdHandler(self.wifi_config)
+        self._dnsmasq_handler = _DnsmasqHandler(self.lan_config, self.dns_custom_hosts)
 
     def __str__(self):
         return "Wifi config:\n" \
@@ -183,22 +187,22 @@ class AP:
                "{}".format(self.wifi_config, self.lan_config)
 
     def is_running(self):
-        return self.hostapd_handler.is_running() and self.dnsmasq_handler.is_running()
+        return self._hostapd_handler.is_running() and self._dnsmasq_handler.is_running()
 
-    def reload_custom_hosts(self):
-        self.dnsmasq_handler.reload_custom_hosts()
+    def reload_dns_custom_hosts(self):
+        self._dnsmasq_handler.reload_custom_hosts()
 
     def stop(self):
-        self.hostapd_handler.stop()
-        self.dnsmasq_handler.stop()
+        self._hostapd_handler.stop()
+        self._dnsmasq_handler.stop()
 
         run(["sysctl", "-w", "net.ipv4.ip_forward=0"])
 
         iptc.Table(iptc.Table.NAT).flush()
 
     def start(self) -> bool:
-        self.hostapd_handler.run()
-        self.dnsmasq_handler.run()
+        self._hostapd_handler.run()
+        self._dnsmasq_handler.run()
 
         pyw.ifaddrset(pyw.getcard(self.wifi_config.interface), self.lan_config.router_ip, self.lan_config.netmask)
 
