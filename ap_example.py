@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-from sys import stdin
-
 from pinecone.core.ap import *
 
 ap = AP(WifiConfig(interface="wlan0", channel=1, encryption="WPA2", password="password12345", essid="TP_LINK"),

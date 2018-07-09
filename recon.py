@@ -67,7 +67,7 @@ def handle_packet(packet):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("-i", "--iface", help="mode monitor interface", required=True)
+    parser.add_argument("-i", "--iface", help="monitor mode interface", required=True)
     ops = parser.parse_args()
 
     # chann_hops = (1, 6, 11, 14, 2, 7, 12, 3, 8, 13, 4, 9, 5, 10)
