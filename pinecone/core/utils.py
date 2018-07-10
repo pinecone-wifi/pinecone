@@ -12,8 +12,9 @@ class IfaceUtils:
     def set_monitor_mode(interface: typing.Union[str, pyw.Card]) -> pyw.Card:
         interface = IfaceUtils._get_card(interface)
 
-        pyw.down(interface)
-        pyw.modeset(interface, "monitor")
-        pyw.up(interface)
+        if pyw.modeget(interface) != "monitor":
+            pyw.down(interface)
+            pyw.modeset(interface, "monitor")
+            pyw.up(interface)
 
         return interface

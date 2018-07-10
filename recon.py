@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
-from argparse import ArgumentParser
 import signal
+from argparse import ArgumentParser
 
 from pyric import pyw
 from scapy.layers.dot11 import *
 
+from pinecone.core.utils import IfaceUtils
 from pinecone.model import *
 
 bssid_cache = set()
@@ -67,7 +68,7 @@ def handle_packet(packet):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("-i", "--iface", help="monitor mode interface", required=True)
+    parser.add_argument("-i", "--iface", help="interface", default="wlan0", type=str)
     ops = parser.parse_args()
 
     # chann_hops = (1, 6, 11, 14, 2, 7, 12, 3, 8, 13, 4, 9, 5, 10)
@@ -87,8 +88,7 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, sig_exit_handle)
 
     while running:
-
-        mon_iface = pyw.getcard(ops.iface)
+        mon_iface = IfaceUtils.set_monitor_mode(ops.iface)
 
         try:
             for channel in chann_hops:
