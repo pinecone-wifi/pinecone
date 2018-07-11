@@ -12,17 +12,36 @@ from pinecone.model import *
 bssid_cache = set()
 
 
+def handle_probe_req(packet: Packet):
+    client_mac = packet[Dot11].addr2
+    elt_field = packet[Dot11Elt]
+    essid = None
+
+    while isinstance(elt_field, Dot11Elt):
+        if elt_field.ID == 0 and elt_field.len > 0:
+            essid = elt_field.info.decode()
+
+        elt_field = elt_field.payload
+
+    print("[i] Detected client {} probing".format(client_mac), end="")
+
+    if essid is not None:
+        print(" for '{}' ESSID".format(essid), end="")
+
+    print(".")
+
+
 @db_session
-def handle_beacon(pkt):
-    bssid = pkt[Dot11].addr3
+def handle_beacon(packet: Packet):
+    bssid = packet[Dot11].addr3
 
     if bssid in bssid_cache:
         return
 
     bssid_cache.add(bssid)
 
-    p = pkt[Dot11Elt]
-    cap = pkt.sprintf("{Dot11Beacon:%Dot11Beacon.cap%}").split('+')
+    p = packet[Dot11Elt]
+    cap = packet.sprintf("{Dot11Beacon:%Dot11Beacon.cap%}").split('+')
     ssid, channel = None, None
     crypto = set()
     while isinstance(p, Dot11Elt):
@@ -56,45 +75,44 @@ def handle_beacon(pkt):
     except:
         pass
 
-    print("[*] [ch:{}] {} [{}], {}".format(channel, ssid, bssid, enc))
+    print("[i] Detected AP: [ch:{}] {} [{}], {}".format(channel, ssid, bssid, enc))
 
 
-def handle_packet(packet):
-    if packet.haslayer(Dot11ProbeReq) or packet.haslayer(Dot11ProbeResp) or packet.haslayer(Dot11AssoReq):
-        pass
+def handle_packet(packet: Packet):
+    if packet.haslayer(Dot11ProbeReq):
+        handle_probe_req(packet)
     elif packet.haslayer(Dot11Beacon):
         handle_beacon(packet)
 
 
 if __name__ == "__main__":
-    parser = ArgumentParser()
-    parser.add_argument("-i", "--iface", help="interface", default="wlan0", type=str)
-    ops = parser.parse_args()
+    args_parser = ArgumentParser()
+    args_parser.add_argument("-i", "--iface", help="wlan interface", default="wlan0", type=str)
+    args = args_parser.parse_args()
 
-    # chann_hops = (1, 6, 11, 14, 2, 7, 12, 3, 8, 13, 4, 9, 5, 10)
     chann_hops = (1, 6, 11, 2, 7, 12, 3, 8, 13, 4, 9, 5, 10)
 
     running = True
 
 
-    def sig_exit_handle(signal, frame):
+    def sig_exit_handler(signal, frame):
         global running
         running = False
 
         print("[i] Exiting...")
 
 
-    signal.signal(signal.SIGTERM, sig_exit_handle)
-    signal.signal(signal.SIGINT, sig_exit_handle)
+    signal.signal(signal.SIGTERM, sig_exit_handler)
+    signal.signal(signal.SIGINT, sig_exit_handler)
+
+    interface = IfaceUtils.set_monitor_mode(args.iface)
 
     while running:
-        mon_iface = IfaceUtils.set_monitor_mode(ops.iface)
-
         try:
             for channel in chann_hops:
-                pyw.chset(mon_iface, channel)
+                pyw.chset(interface, channel)
+                sniff(iface=args.iface, prn=handle_packet, timeout=3, store=False)
 
-                sniff(iface=ops.iface, prn=handle_packet, timeout=3, store=False)
                 if not running: break
         except KeyboardInterrupt:
             pass
