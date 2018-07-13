@@ -2,7 +2,9 @@
 
 import signal
 from argparse import ArgumentParser
+from datetime import datetime
 
+from pony.orm import *
 from pyric import pyw
 from scapy.layers.dot11 import *
 
@@ -10,72 +12,108 @@ from pinecone.core.utils import IfaceUtils
 from pinecone.model import *
 
 bssid_cache = set()
+client_cache = set()
 
 
+@db_session
 def handle_probe_req(packet: Packet):
+    now = datetime.now()
     client_mac = packet[Dot11].addr2
+
+    try:
+        client = Client[client_mac]
+    except:
+        client = Client(mac=client_mac)
+
     elt_field = packet[Dot11Elt]
-    essid = None
+    ssid = None
 
     while isinstance(elt_field, Dot11Elt):
-        if elt_field.ID == 0 and elt_field.len > 0:
-            essid = elt_field.info.decode()
+        if elt_field.ID == 0 and elt_field.len is not None and elt_field.len > 0:
+            try:
+                ssid = elt_field.info.decode()
+            except:
+                pass
 
         elt_field = elt_field.payload
 
-    print("[i] Detected client {} probing".format(client_mac), end="")
+    if ssid is not None:
+        try:
+            ess = ExtendedServiceSet[ssid]
+        except:
+            ess = ExtendedServiceSet(ssid=ssid)
 
-    if essid is not None:
-        print(" for '{}' ESSID".format(essid), end="")
+        try:
+            ProbeReq[client, ess].last_seen = now
+        except:
+            ProbeReq(client=client, ess=ess, last_seen=now)
 
-    print(".")
+        print("[i] Detected client {} probing for '{}' ESSID.".format(client_mac, ssid))
+    elif client_mac not in client_cache:
+        client_cache.add(client_mac)
+        print("[i] Detected client {}.".format(client_mac))
 
 
 @db_session
 def handle_beacon(packet: Packet):
+    now = datetime.now()
     bssid = packet[Dot11].addr3
+    elt_field = packet[Dot11Elt]
+    capability_list = packet.sprintf("{Dot11Beacon:%Dot11Beacon.cap%}").split('+')
+    ssid = None
+    channel = None
+    encryption_types = set()
 
-    if bssid in bssid_cache:
-        return
+    while isinstance(elt_field, Dot11Elt):
+        if elt_field.ID == 0 and elt_field.len is not None and elt_field.len > 0:
+            try:
+                ssid = elt_field.info.decode()
+            except:
+                pass
+        elif elt_field.ID == 3:
+            try:
+                channel = ord(elt_field.info)
+            except:
+                pass
+        elif elt_field.ID == 48:
+            encryption_types.add("WPA2")
+        elif elt_field.ID == 221 and elt_field.info.startswith(b"\x00P\xf2\x01\x01\x00"):
+            encryption_types.add("WPA")
 
-    bssid_cache.add(bssid)
+        elt_field = elt_field.payload
 
-    p = packet[Dot11Elt]
-    cap = packet.sprintf("{Dot11Beacon:%Dot11Beacon.cap%}").split('+')
-    ssid, channel = None, None
-    crypto = set()
-    while isinstance(p, Dot11Elt):
-        if p.ID == 0:
-            ssid = p.info.decode()
-        elif p.ID == 3:
-            channel = ord(p.info)
-        elif p.ID == 48:
-            crypto.add("WPA2")
-        elif p.ID == 221 and p.info.startswith(b"\x00P\xf2\x01\x01\x00"):
-            crypto.add("WPA")
-        p = p.payload
-    if not crypto:
-        if "privacy" in cap:
-            crypto.add("WEP")
-        else:
-            crypto.add("OPN")
+    if not encryption_types:
+        encryption_types.add("WEP" if "privacy" in capability_list else "OPN")
 
-    enc = crypto.pop()
+    encryption_type = encryption_types.pop()
+
+    ess = None
+
+    if ssid is not None:
+        try:
+            ess = ExtendedServiceSet[ssid]
+        except:
+            ess = ExtendedServiceSet(ssid=ssid)
+
     try:
-        ess = ExtendedServiceSet(ssid=ssid)
-        commit()
-    except:
-        pass
+        bss = BasicServiceSet[bssid]
 
-    try:
-        # TODO: fix multiple encryptions APs
-        ess = ExtendedServiceSet[ssid]
-        BasicServiceSet(bssid=bssid, channel=channel, enc=enc, ess=ess)
-        commit()
-    except:
-        pass
+        if channel is not None:
+            bss.channel = channel
 
-    print("[i] Detected AP: [ch:{}] {} [{}], {}".format(channel, ssid, bssid, enc))
+        bss.encryption = encryption_type
+        bss.last_seen = now
+        bss.ess = ess
+    except:
+        if channel is not None:
+            BasicServiceSet(bssid=bssid, channel=channel, encryption=encryption_type, last_seen=now,
+                            ess=ess)
+
+    if bssid not in bssid_cache:
+        bssid_cache.add(bssid)
+        print(
+            "[i] Detected AP: [ch:{}] [SSID: {}] [BSSID: {}] [encryption: {}]".format(channel, ssid, bssid,
+                                                                                      encryption_type))
 
 
 def handle_packet(packet: Packet):
