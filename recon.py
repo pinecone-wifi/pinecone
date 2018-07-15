@@ -2,6 +2,7 @@
 
 import signal
 from argparse import ArgumentParser
+from sys import stderr
 
 from pyric import pyw
 from scapy.layers.dot11 import *
@@ -9,8 +10,9 @@ from scapy.layers.dot11 import *
 from pinecone.core.utils import IfaceUtils
 from pinecone.core.model import *
 
-bssid_cache = set()
-client_cache = set()
+bssids_cache = set()
+clients_cache = set()
+iface_current_channel = None
 
 
 @db_session
@@ -27,7 +29,7 @@ def handle_probe_req(packet: Packet):
     ssid = None
 
     while isinstance(elt_field, Dot11Elt):
-        if elt_field.ID == 0 and elt_field.len is not None and elt_field.len > 0:
+        if elt_field.ID == 0 and elt_field.len and elt_field.len > 0:
             try:
                 ssid = elt_field.info.decode()
             except:
@@ -35,7 +37,9 @@ def handle_probe_req(packet: Packet):
 
         elt_field = elt_field.payload
 
-    if ssid is not None:
+    ess = None
+
+    if ssid:
         try:
             ess = ExtendedServiceSet[ssid]
         except:
@@ -46,24 +50,22 @@ def handle_probe_req(packet: Packet):
         except:
             ProbeReq(client=client, ess=ess, last_seen=now)
 
-        print("[i] Detected client {} probing for '{}' ESSID.".format(client_mac, ssid))
-    elif client_mac not in client_cache:
-        client_cache.add(client_mac)
-        print("[i] Detected client {}.".format(client_mac))
+    if (client_mac, ssid) not in clients_cache:
+        clients_cache.add((client_mac, ssid))
+        print("[i] Detected client {{{}}}{}.".format(client,
+                                                     " probing for ESS {{{}}}".format(ess) if ess is not None else ""))
 
 
 @db_session
 def handle_beacon(packet: Packet):
     now = datetime.now()
-    bssid = packet[Dot11].addr3
-    elt_field = packet[Dot11Elt]
-    capability_list = packet.sprintf("{Dot11Beacon:%Dot11Beacon.cap%}").split('+')
-    ssid = None
     channel = None
+    elt_field = packet[Dot11Elt]
     encryption_types = set()
+    ssid = None
 
     while isinstance(elt_field, Dot11Elt):
-        if elt_field.ID == 0 and elt_field.len is not None and elt_field.len > 0:
+        if elt_field.ID == 0 and elt_field.len and elt_field.len > 0:
             try:
                 ssid = elt_field.info.decode()
             except:
@@ -80,45 +82,51 @@ def handle_beacon(packet: Packet):
 
         elt_field = elt_field.payload
 
+    if channel is None:
+        channel = iface_current_channel
+
     if not encryption_types:
-        encryption_types.add("WEP" if "privacy" in capability_list else "OPN")
+        capabilities = packet.sprintf("{Dot11Beacon:%Dot11Beacon.cap%}").split('+')
+        encryption_types.add("WEP" if "privacy" in capabilities else "OPN")
 
     encryption_type = encryption_types.pop()
-
     ess = None
+    hides_ssid = False
 
-    if ssid is not None:
+    if ssid:
         try:
             ess = ExtendedServiceSet[ssid]
         except:
             ess = ExtendedServiceSet(ssid=ssid)
+    else:
+        hides_ssid = True
+
+    bssid = packet[Dot11].addr3
 
     try:
         bss = BasicServiceSet[bssid]
-
-        if channel is not None:
-            bss.channel = channel
-
+        bss.channel = channel
         bss.encryption = encryption_type
         bss.last_seen = now
         bss.ess = ess
+        bss.hides_ssid = hides_ssid
     except:
-        if channel is not None:
-            BasicServiceSet(bssid=bssid, channel=channel, encryption=encryption_type, last_seen=now,
-                            ess=ess)
+        bss = BasicServiceSet(bssid=bssid, channel=channel, encryption=encryption_type, last_seen=now,
+                              ess=ess, hides_ssid=hides_ssid)
 
-    if bssid not in bssid_cache:
-        bssid_cache.add(bssid)
-        print(
-            "[i] Detected AP: [ch:{}] [SSID: {}] [BSSID: {}] [encryption: {}]".format(channel, ssid, bssid,
-                                                                                      encryption_type))
+    if bssid not in bssids_cache:
+        bssids_cache.add(bssid)
+        print("[i] Detected AP: {{{}}}.".format(bss))
 
 
 def handle_packet(packet: Packet):
-    if packet.haslayer(Dot11ProbeReq):
-        handle_probe_req(packet)
-    elif packet.haslayer(Dot11Beacon):
-        handle_beacon(packet)
+    try:
+        if packet.haslayer(Dot11ProbeReq):
+            handle_probe_req(packet)
+        elif packet.haslayer(Dot11Beacon):
+            handle_beacon(packet)
+    except Exception as e:
+        print("\n[!] Exception while handling packet: {}\n".format(e), file=stderr)
 
 
 if __name__ == "__main__":
@@ -135,7 +143,7 @@ if __name__ == "__main__":
         global running
         running = False
 
-        print("[i] Exiting...")
+        print("\n[i] Exiting...\n")
 
 
     signal.signal(signal.SIGTERM, sig_exit_handler)
@@ -144,11 +152,9 @@ if __name__ == "__main__":
     interface = IfaceUtils.set_monitor_mode(args.iface)
 
     while running:
-        try:
-            for channel in chann_hops:
-                pyw.chset(interface, channel)
-                sniff(iface=args.iface, prn=handle_packet, timeout=3, store=False)
+        for channel in chann_hops:
+            pyw.chset(interface, channel)
+            iface_current_channel = channel
+            sniff(iface=args.iface, prn=handle_packet, timeout=3, store=False)
 
-                if not running: break
-        except KeyboardInterrupt:
-            pass
+            if not running: break

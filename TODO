@@ -3,7 +3,7 @@
 
 - DOING:
     * Improve recon.
-    * Deauth attack.
+    * Improve deauth attack.
 
 - DONE:
     * Move model module to core module.
