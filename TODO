@@ -1,8 +1,10 @@
 - TODO:
+    * Metasploit-like CLI.
 
 - DOING:
     * Improve recon.
     * Deauth attack.
 
 - DONE:
+    * Move model module to core module.
     * Util to set an interface to monitor mode.

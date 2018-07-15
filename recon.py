@@ -2,14 +2,12 @@
 
 import signal
 from argparse import ArgumentParser
-from datetime import datetime
 
-from pony.orm import *
 from pyric import pyw
 from scapy.layers.dot11 import *
 
 from pinecone.core.utils import IfaceUtils
-from pinecone.model import *
+from pinecone.core.model import *
 
 bssid_cache = set()
 client_cache = set()
