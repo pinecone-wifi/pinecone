@@ -1,5 +1,5 @@
-from sys import modules
 from datetime import datetime
+from sys import modules
 
 from pathlib2 import Path
 from pony.orm import *
@@ -14,27 +14,27 @@ db = Database()
 class BasicServiceSet(db.Entity):
     bssid = PrimaryKey(str, max_len=18)
     channel = Required(int)
-    encryption = Required(str, py_check=lambda t: t in ENCRYPTION_TYPES)
-    cipher = Optional(str, py_check=lambda t: t in CIPHER_TYPES)
-    authn = Optional(str, py_check=lambda t: t in AUTHN_TYPES)
+    encryption_types = Required(str, py_check=lambda x: x in ENCRYPTION_TYPES)
+    cipher_types = Required(str, py_check=lambda x: x in CIPHER_TYPES)
+    authn_types = Required(str, py_check=lambda x: x in AUTHN_TYPES)
     last_seen = Required(datetime)
-    ess = Optional("ExtendedServiceSet", reverse="bssets")
+    ess = Optional("ExtendedServiceSet")
     hides_ssid = Required(bool)
-    #band
-    #channel_width
+    # band
+    # channel_width
     connections = Set("Connection")
 
     def __str__(self):
         ess_info = str(self.ess) if self.ess is not None else ""
 
-        return "BSSID: {}, channel: {}, encryption: {}, last seen: {}, ESS: ({}), hides SSID: {}".format(
-            self.bssid, self.channel, self.encryption,
-            self.last_seen, ess_info, self.hides_ssid)
+        return "BSSID: {}, channel: {}, encryption types: ({}), cipher types: ({}), authn types: ({}), last seen: {}, ESS: ({}), hides SSID: {}".format(
+            self.bssid, self.channel, self.encryption_types, self.cipher_types, self.authn_types, self.last_seen,
+            ess_info, self.hides_ssid)
 
 
 class ExtendedServiceSet(db.Entity):
     ssid = PrimaryKey(str, max_len=32)
-    bssets = Set(BasicServiceSet, reverse="ess")
+    bssets = Set(BasicServiceSet)
     probes_recvd = Set("ProbeReq")
 
     def __str__(self):
@@ -47,6 +47,9 @@ class Connection(db.Entity):
     last_seen = Required(datetime)
 
     PrimaryKey(client, bss)
+
+    def __str__(self):
+        return "Client: ({}), BSS: ({}), last seen: {}".format(self.client, self.bss, self.last_seen)
 
 
 class ProbeReq(db.Entity):
@@ -62,8 +65,8 @@ class ProbeReq(db.Entity):
 
 class Client(db.Entity):
     mac = PrimaryKey(str, max_len=18)
-    probe_reqs = Set(ProbeReq, reverse="client")
-    connections = Set(Connection, reverse="client")
+    probe_reqs = Set(ProbeReq)
+    connections = Set(Connection)
 
     def __str__(self):
         return "MAC: {}".format(self.mac)
