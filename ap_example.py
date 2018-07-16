@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from pinecone.core.ap import *
+from pinecone.core.ap import AP, WifiConfig, LanConfig
 
 ap = AP(WifiConfig(interface="wlan0", channel=1, encryption="WPA2", password="password12345", essid="TP_LINK"),
         LanConfig(router_ip="192.168.0.1", netmask="255.255.255.0", out_iface="eth0", dhcp_start_addr="192.168.0.50",

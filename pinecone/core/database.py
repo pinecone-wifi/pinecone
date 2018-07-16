@@ -5,13 +5,18 @@ from pathlib2 import Path
 from pony.orm import *
 
 ENCRYPTION_TYPES = {"OPN", "WEP", "WPA", "WPA2"}
+CIPHER_TYPES = {"WEP", "TKIP", "CCMP"}
+AUTHN_TYPES = {"PSK", "MGT"}
+
 db = Database()
 
 
 class BasicServiceSet(db.Entity):
     bssid = PrimaryKey(str, max_len=18)
     channel = Required(int)
-    encryption = Required(str, py_check=lambda x: x in ENCRYPTION_TYPES)
+    encryption = Required(str, py_check=lambda t: t in ENCRYPTION_TYPES)
+    cipher = Optional(str, py_check=lambda t: t in CIPHER_TYPES)
+    authn = Optional(str, py_check=lambda t: t in AUTHN_TYPES)
     last_seen = Required(datetime)
     ess = Optional("ExtendedServiceSet", reverse="bssets")
     hides_ssid = Required(bool)
@@ -22,7 +27,7 @@ class BasicServiceSet(db.Entity):
     def __str__(self):
         ess_info = str(self.ess) if self.ess is not None else ""
 
-        return "BSSID: {}, channel: {}, encryption: {}, last seen: {}, ESS: {{{}}}, hides SSID: {}".format(
+        return "BSSID: {}, channel: {}, encryption: {}, last seen: {}, ESS: ({}), hides SSID: {}".format(
             self.bssid, self.channel, self.encryption,
             self.last_seen, ess_info, self.hides_ssid)
 
@@ -52,7 +57,7 @@ class ProbeReq(db.Entity):
     PrimaryKey(client, ess)
 
     def __str__(self):
-        return "Client: {{{}}}, ESS: {{{}}}, last seen: {}".format(self.client, self.ess, self.last_seen)
+        return "Client: ({}), ESS: ({}), last seen: {}".format(self.client, self.ess, self.last_seen)
 
 
 class Client(db.Entity):
@@ -67,7 +72,7 @@ class Client(db.Entity):
 DB_PATH = str(Path(Path(modules["__main__"].__file__).parent, "db", "database.sqlite").resolve())
 Path(DB_PATH).parent.mkdir(exist_ok=True)
 
-print("[i] Database file:", DB_PATH)
+print("[i] Database file: ", DB_PATH)
 
 db.bind(provider="sqlite", filename=DB_PATH, create_db=True)
 db.generate_mapping(create_tables=True)

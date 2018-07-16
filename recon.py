@@ -2,13 +2,15 @@
 
 import signal
 from argparse import ArgumentParser
+from datetime import datetime
 from sys import stderr
 
+from pony.orm import *
 from pyric import pyw
-from scapy.layers.dot11 import *
+from scapy.layers.dot11 import Dot11, Dot11Elt, Packet, Dot11ProbeReq, Dot11Beacon, sniff
 
+from pinecone.core.database import Client, ExtendedServiceSet, ProbeReq, BasicServiceSet
 from pinecone.core.utils import IfaceUtils
-from pinecone.core.model import *
 
 bssids_cache = set()
 clients_cache = set()
@@ -52,8 +54,8 @@ def handle_probe_req(packet: Packet):
 
     if (client_mac, ssid) not in clients_cache:
         clients_cache.add((client_mac, ssid))
-        print("[i] Detected client {{{}}}{}.".format(client,
-                                                     " probing for ESS {{{}}}".format(ess) if ess is not None else ""))
+        print("[i] Detected client ({}){}.".format(client,
+                                                   " probing for ESS ({})".format(ess) if ess is not None else ""))
 
 
 @db_session
@@ -77,7 +79,7 @@ def handle_beacon(packet: Packet):
                 pass
         elif elt_field.ID == 48:
             encryption_types.add("WPA2")
-        elif elt_field.ID == 221 and elt_field.info.startswith(b"\x00P\xf2\x01\x01\x00"):
+        elif elt_field.ID == 221 and elt_field.info.startswith(b"\x00\x50\xf2\x01\x01\x00"):
             encryption_types.add("WPA")
 
         elt_field = elt_field.payload
@@ -116,7 +118,7 @@ def handle_beacon(packet: Packet):
 
     if bssid not in bssids_cache:
         bssids_cache.add(bssid)
-        print("[i] Detected AP: {{{}}}.".format(bss))
+        print("[i] Detected AP: ({}).".format(bss))
 
 
 def handle_packet(packet: Packet):

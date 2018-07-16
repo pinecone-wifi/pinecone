@@ -1,9 +1,10 @@
 - TODO:
+    * Improve deauth module.
+    * Recon cipher and authn types.
+    * Handle data packets in recon.py.
     * Metasploit-like CLI.
 
 - DOING:
-    * Improve recon.
-    * Improve deauth attack.
 
 - DONE:
     * Move model module to core module.
