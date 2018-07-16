@@ -1,10 +1,13 @@
 - TODO:
-    * Improve deauth module.
-    * Recon cipher and authn types.
+    * Check SSID str / channel int in ELT field.
     * Handle data packets in recon.py.
+    * Improve deauth module.
     * Metasploit-like CLI.
 
 - DOING:
+    * Recon cipher and authn types.
+
+- ON HOLD:
 
 - DONE:
     * Move model module to core module.
