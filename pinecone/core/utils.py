@@ -98,7 +98,7 @@ class ScapyUtils:
                     dot11elts_info["channel"] = dot11elt.info[0]
                 except:
                     pass
-            elif dot11elt.ID == 48 or (dot11elt == 221 and dot11elt.info.startswith(b"\x00\x50\xf2\x01\x01\x00")):
+            elif dot11elt.ID == 48 or (dot11elt.ID == 221 and dot11elt.info.startswith(b"\x00\x50\xf2\x01\x01\x00")):
                 sec_dot11elt_info = ScapyUtils._process_security_dot11elt(dot11elt)
                 dot11elts_info["encryption_types"].add(sec_dot11elt_info["encryption_type"])
                 dot11elts_info["cipher_types"] |= sec_dot11elt_info["cipher_types"]

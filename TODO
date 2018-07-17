@@ -1,14 +1,16 @@
 - TODO:
+	* Hides SSID attr.
+	* Recon WEP cipher and authn types.
     * Handle data packets in recon.py.
     * Improve deauth module.
     * Metasploit-like CLI.
 
 - DOING:
-    * Recon cipher and authn types.
 
 - ON HOLD:
 
 - DONE:
+	* Recon WPA / WPA2 cipher and authn types.
     * Check SSID str / channel int in ELT field.
     * Move model module to core module.
     * Util to set an interface to monitor mode.
