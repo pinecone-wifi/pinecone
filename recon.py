@@ -55,6 +55,8 @@ def handle_beacon(packet: Packet):
     ssid = dot11elts_info["ssid"]
     channel = dot11elts_info["channel"]
     encryption_types = ", ".join(dot11elts_info["encryption_types"])
+    cipher_types = ", ".join(dot11elts_info["cipher_types"])
+    authn_types = ", ".join(dot11elts_info["authn_types"])
     hides_ssid = not ssid
     ess = None
     bssid = packet[Dot11].addr3
@@ -76,14 +78,14 @@ def handle_beacon(packet: Packet):
         bss = BasicServiceSet[bssid]
         bss.channel = channel
         bss.encryption_types = encryption_types
-        bss.cipher_types = ""
-        bss.authn_types = ""
+        bss.cipher_types = cipher_types
+        bss.authn_types = authn_types
         bss.last_seen = now
         bss.ess = ess
         bss.hides_ssid = hides_ssid
     except:
-        BasicServiceSet(bssid=bssid, channel=channel, encryption_types=encryption_types, cipher_types="",
-                        authn_types="", last_seen=now, ess=ess, hides_ssid=hides_ssid)
+        BasicServiceSet(bssid=bssid, channel=channel, encryption_types=encryption_types, cipher_types=cipher_types,
+                        authn_types=authn_types, last_seen=now, ess=ess, hides_ssid=hides_ssid)
 
     if bssid not in bssids_cache:
         bssids_cache.add(bssid)
@@ -92,7 +94,8 @@ def handle_beacon(packet: Packet):
         print("[i] Detected AP: SSID: {}, BSSID: {}, ch: {}, enc: ({}), cipher: ({}), authn: ({}).".format(ssid, bssid,
                                                                                                            channel,
                                                                                                            encryption_types,
-                                                                                                           "", ""))
+                                                                                                           cipher_types,
+                                                                                                           authn_types))
 
 
 def handle_packet(packet: Packet):

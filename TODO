@@ -1,5 +1,4 @@
 - TODO:
-    * Check SSID str / channel int in ELT field.
     * Handle data packets in recon.py.
     * Improve deauth module.
     * Metasploit-like CLI.
@@ -10,5 +9,6 @@
 - ON HOLD:
 
 - DONE:
+    * Check SSID str / channel int in ELT field.
     * Move model module to core module.
     * Util to set an interface to monitor mode.

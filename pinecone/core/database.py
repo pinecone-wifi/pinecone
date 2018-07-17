@@ -5,7 +5,7 @@ from pathlib2 import Path
 from pony.orm import *
 
 ENCRYPTION_TYPES = {"OPN", "WEP", "WPA", "WPA2"}
-CIPHER_TYPES = {"WEP", "TKIP", "CCMP"}
+CIPHER_TYPES = {"WEP", "TKIP", "WRAP", "CCMP", "WEP104", "GCMP"}
 AUTHN_TYPES = {"PSK", "MGT"}
 
 db = Database()
@@ -15,8 +15,8 @@ class BasicServiceSet(db.Entity):
     bssid = PrimaryKey(str, max_len=18)
     channel = Required(int)
     encryption_types = Required(str)
-    cipher_types = Required(str)
-    authn_types = Required(str)
+    cipher_types = Optional(str)
+    authn_types = Optional(str)
     last_seen = Required(datetime)
     ess = Optional("ExtendedServiceSet")
     hides_ssid = Required(bool)
