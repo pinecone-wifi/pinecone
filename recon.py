@@ -7,13 +7,14 @@ from sys import stderr
 
 from pony.orm import *
 from pyric import pyw
-from scapy.layers.dot11 import Dot11, Dot11Elt, Packet, Dot11ProbeReq, Dot11Beacon, sniff
+from scapy.layers.dot11 import sniff, Packet, Dot11, Dot11Elt, Dot11ProbeReq, Dot11Beacon
 
 from pinecone.core.database import Client, ExtendedServiceSet, ProbeReq, BasicServiceSet
 from pinecone.core.utils import IfaceUtils, ScapyUtils
 
 bssids_cache = set()
 clients_cache = set()
+connections_cache = set()
 iface_current_channel = None
 
 
@@ -91,11 +92,11 @@ def handle_beacon(packet: Packet):
         bssids_cache.add(bssid)
 
         ssid = "\"{}\"".format(ssid) if ssid else "<empty>"
-        print("[i] Detected AP: SSID: {}, BSSID: {}, ch: {}, enc: ({}), cipher: ({}), authn: ({}).".format(ssid, bssid,
-                                                                                                           channel,
-                                                                                                           encryption_types,
-                                                                                                           cipher_types,
-                                                                                                           authn_types))
+        print("[i] Detected AP (SSID: {}, BSSID: {}, ch: {}, enc: ({}), cipher: ({}), authn: ({})).".format(ssid, bssid,
+                                                                                                            channel,
+                                                                                                            encryption_types,
+                                                                                                            cipher_types,
+                                                                                                            authn_types))
 
 
 def handle_packet(packet: Packet):
@@ -105,7 +106,7 @@ def handle_packet(packet: Packet):
         elif packet.haslayer(Dot11Beacon):
             handle_beacon(packet)
     except Exception as e:
-        print("\n[!] Exception while handling packet: {}\n".format(e), file=stderr)
+        print("\n[!] Exception while handling packet: {}\n{}".format(e, packet.show(dump=True)), file=stderr)
 
 
 if __name__ == "__main__":
@@ -113,7 +114,7 @@ if __name__ == "__main__":
     args_parser.add_argument("-i", "--iface", help="wlan interface", default="wlan0", type=str)
     args = args_parser.parse_args()
 
-    chann_hops = (1, 6, 11, 2, 7, 12, 3, 8, 13, 4, 9, 5, 10)
+    chann_hops = (1, 6, 11, 14, 2, 7, 12, 3, 8, 13, 4, 9, 5, 10)
 
     running = True
 

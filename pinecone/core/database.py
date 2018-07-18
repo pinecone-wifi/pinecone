@@ -5,7 +5,7 @@ from pathlib2 import Path
 from pony.orm import *
 
 ENCRYPTION_TYPES = {"OPN", "WEP", "WPA", "WPA2"}
-CIPHER_TYPES = {"WEP", "TKIP", "WRAP", "CCMP", "WEP104", "GCMP"}
+CIPHER_TYPES = {"WEP", "TKIP", "WRAP", "CCMP-128", "WEP104", "GCMP-128", "GCMP-256", "CCMP-256"}
 AUTHN_TYPES = {"PSK", "MGT"}
 
 db = Database()

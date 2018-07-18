@@ -1,11 +1,12 @@
 - TODO:
 	* Hides SSID attr.
 	* Recon WEP cipher and authn types.
-    * Handle data packets in recon.py.
+    * Recon data packets.
     * Improve deauth module.
     * Metasploit-like CLI.
 
 - DOING:
+    * Recon association / reassociation packets.
 
 - ON HOLD:
 

@@ -27,14 +27,14 @@ class IfaceUtils:
 
 class ScapyUtils:
     cipher_type_ids = {
-        1: "WEP",
+        1: "WEP40",
         2: "TKIP",
         3: "WRAP",
-        4: "CCMP",
+        4: "CCMP-128",
         5: "WEP104",
-        8: "GCMP",
-        9: "GCMP",
-        10: "CCMP"
+        8: "GCMP-128",
+        9: "GCMP-256",
+        10: "CCMP-256"
     }
 
     authn_type_ids = {
@@ -43,7 +43,7 @@ class ScapyUtils:
     }
 
     @staticmethod
-    def _process_security_dot11elt(sec_dot11elt: Dot11Elt) -> typing.Dict[str, typing.Set[str]]:
+    def _process_security_dot11elt(sec_dot11elt: Dot11Elt) -> typing.Dict[str, typing.Any]:
         sec_info = {
             "encryption_type": None,
             "cipher_types": set(),
