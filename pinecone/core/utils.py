@@ -1,4 +1,5 @@
 import typing
+from binascii import unhexlify
 
 from pyric import pyw
 from scapy.layers.dot11 import Dot11Elt
@@ -41,6 +42,10 @@ class ScapyUtils:
         1: "MGT",
         2: "PSK",
     }
+
+    @staticmethod
+    def is_multicast_mac(mac: str) -> bool:
+        return (unhexlify(mac[0:2])[0] % 2) != 0
 
     @staticmethod
     def _process_security_dot11elt(sec_dot11elt: Dot11Elt) -> typing.Dict[str, typing.Any]:

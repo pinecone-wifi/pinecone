@@ -9,7 +9,7 @@ from pony.orm import *
 from pyric import pyw
 from scapy.layers.dot11 import sniff, Packet, Dot11, Dot11Elt, Dot11ProbeReq, Dot11Beacon
 
-from pinecone.core.database import Client, ExtendedServiceSet, ProbeReq, BasicServiceSet
+from pinecone.core.database import Client, ExtendedServiceSet, ProbeReq, BasicServiceSet, Connection
 from pinecone.core.utils import IfaceUtils, ScapyUtils
 
 bssids_cache = set()
@@ -19,17 +19,68 @@ iface_current_channel = None
 
 
 @db_session
+def handle_dot11_header(packet: Packet):
+    now = datetime.now()
+    dot11_packet = packet[Dot11]
+
+    if dot11_packet.sprintf("%type%") != "Control":
+        dot11_ds_bits = {flag for flag in str(dot11_packet.FCfield).split("+") if flag in {"to-DS", "from-DS"}}
+
+        if not dot11_ds_bits:
+            bssid = dot11_packet.addr3
+            client_mac = dot11_packet.addr1 if dot11_packet.addr2 == bssid else dot11_packet.addr2
+        elif len(dot11_ds_bits) == 1:
+            if "to-DS" in dot11_ds_bits:
+                bssid = dot11_packet.addr1
+                client_mac = dot11_packet.addr2
+            else:  # from-DS
+                bssid = dot11_packet.addr2
+                client_mac = dot11_packet.addr1
+        else:  # to-DS & from-DS
+            bssid = dot11_packet.addr2
+            client_mac = None
+
+        if ScapyUtils.is_multicast_mac(bssid):
+            bssid = None
+
+        if client_mac and ScapyUtils.is_multicast_mac(client_mac):
+            client_mac = None
+
+        bss = None
+        if bssid:
+            try:
+                bss = BasicServiceSet[bssid]
+                bss.last_seen = now
+            except:
+                bss = BasicServiceSet(bssid=bssid, last_seen=now)
+
+        if client_mac:
+            try:
+                client = Client[client_mac]
+            except:
+                client = Client(mac=client_mac)
+
+            if client_mac not in clients_cache:
+                clients_cache.add(client_mac)
+                print("[i] Detected client ({})".format(client))
+
+            if bss:
+                try:
+                    Connection[client, bss].last_seen = now
+                except:
+                    Connection(client=client, bss=bss, last_seen=now)
+
+                if (client_mac, bssid) not in connections_cache:
+                    connections_cache.add((client_mac, bssid))
+                    print("[i] Detected connection between client ({}) and BSS (BSSID: {})".format(client, bssid))
+
+
+@db_session
 def handle_probe_req(packet: Packet):
     now = datetime.now()
     client_mac = packet[Dot11].addr2
-
-    try:
-        client = Client[client_mac]
-    except:
-        client = Client(mac=client_mac)
-
+    client = Client[client_mac]
     ssid = ScapyUtils.process_dot11elts(packet[Dot11Elt])["ssid"]
-    ess = None
 
     if ssid:
         try:
@@ -42,16 +93,14 @@ def handle_probe_req(packet: Packet):
         except:
             ProbeReq(client=client, ess=ess, last_seen=now)
 
-    if (client_mac, ssid) not in clients_cache:
-        clients_cache.add((client_mac, ssid))
-        print("[i] Detected client ({}){}.".format(client,
-                                                   " probing for ESS ({})".format(ess) if ess is not None else ""))
+        if (client_mac, ssid) not in clients_cache:
+            clients_cache.add((client_mac, ssid))
+            print("[i] Detected client ({}) probing for ESS ({})".format(client, ess))
 
 
 @db_session
 def handle_beacon(packet: Packet):
     now = datetime.now()
-
     dot11elts_info = ScapyUtils.process_dot11elts(packet[Dot11Elt])
     ssid = dot11elts_info["ssid"]
     channel = dot11elts_info["channel"]
@@ -66,8 +115,7 @@ def handle_beacon(packet: Packet):
         channel = iface_current_channel
 
     if not encryption_types:
-        capabilities = packet.sprintf("{Dot11Beacon:%Dot11Beacon.cap%}")
-        encryption_types = "WEP" if "privacy" in capabilities else "OPN"
+        encryption_types = "WEP" if "privacy" in str(packet[Dot11Beacon].cap) else "OPN"
 
     if ssid:
         try:
@@ -75,18 +123,14 @@ def handle_beacon(packet: Packet):
         except:
             ess = ExtendedServiceSet(ssid=ssid)
 
-    try:
-        bss = BasicServiceSet[bssid]
-        bss.channel = channel
-        bss.encryption_types = encryption_types
-        bss.cipher_types = cipher_types
-        bss.authn_types = authn_types
-        bss.last_seen = now
-        bss.ess = ess
-        bss.hides_ssid = hides_ssid
-    except:
-        BasicServiceSet(bssid=bssid, channel=channel, encryption_types=encryption_types, cipher_types=cipher_types,
-                        authn_types=authn_types, last_seen=now, ess=ess, hides_ssid=hides_ssid)
+    bss = BasicServiceSet[bssid]
+    bss.channel = channel
+    bss.encryption_types = encryption_types
+    bss.cipher_types = cipher_types
+    bss.authn_types = authn_types
+    bss.last_seen = now
+    bss.ess = ess
+    bss.hides_ssid = hides_ssid
 
     if bssid not in bssids_cache:
         bssids_cache.add(bssid)
@@ -101,10 +145,13 @@ def handle_beacon(packet: Packet):
 
 def handle_packet(packet: Packet):
     try:
-        if packet.haslayer(Dot11ProbeReq):
-            handle_probe_req(packet)
-        elif packet.haslayer(Dot11Beacon):
-            handle_beacon(packet)
+        if packet.haslayer(Dot11):
+            handle_dot11_header(packet)
+
+            if packet.haslayer(Dot11ProbeReq):
+                handle_probe_req(packet)
+            elif packet.haslayer(Dot11Beacon):
+                handle_beacon(packet)
     except Exception as e:
         print("\n[!] Exception while handling packet: {}\n{}".format(e, packet.show(dump=True)), file=stderr)
 

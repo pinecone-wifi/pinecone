@@ -13,13 +13,13 @@ db = Database()
 
 class BasicServiceSet(db.Entity):
     bssid = PrimaryKey(str, max_len=18)
-    channel = Required(int)
-    encryption_types = Required(str)
+    channel = Optional(int)
+    encryption_types = Optional(str)
     cipher_types = Optional(str)
     authn_types = Optional(str)
     last_seen = Required(datetime)
     ess = Optional("ExtendedServiceSet")
-    hides_ssid = Required(bool)
+    hides_ssid = Optional(bool)
     # band
     # channel_width
     connections = Set("Connection")

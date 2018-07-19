@@ -1,16 +1,16 @@
 - TODO:
 	* Hides SSID attr.
 	* Recon WEP cipher and authn types.
-    * Recon data packets.
     * Improve deauth module.
     * Metasploit-like CLI.
 
 - DOING:
-    * Recon association / reassociation packets.
 
 - ON HOLD:
 
 - DONE:
+    * Check iface channel vs 802.11 IE channel.
+    * Recon 802.11 header.
 	* Recon WPA / WPA2 cipher and authn types.
     * Check SSID str / channel int in ELT field.
     * Move model module to core module.
