@@ -93,7 +93,9 @@ class ScapyUtils:
         dot11elt = dot11elts
 
         while isinstance(dot11elt, Dot11Elt):
-            if dot11elt.ID == 0 and dot11elt.len and dot11elt.len > 0:
+            if dot11elt.ID == 0 and dot11elt.len is not None and dot11elt.len == 0 and dot11elt.info == b"":
+                dot11elts_info["ssid"] = ""
+            elif dot11elt.ID == 0 and dot11elt.len and dot11elt.len > 0:
                 try:
                     dot11elts_info["ssid"] = dot11elt.info.decode()
                 except:

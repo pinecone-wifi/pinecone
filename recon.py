@@ -25,10 +25,13 @@ def handle_dot11_header(packet: Packet):
 
     if dot11_packet.sprintf("%type%") != "Control":
         dot11_ds_bits = {flag for flag in str(dot11_packet.FCfield).split("+") if flag in {"to-DS", "from-DS"}}
+        client_mac = None
 
         if not dot11_ds_bits:
             bssid = dot11_packet.addr3
-            client_mac = dot11_packet.addr1 if dot11_packet.addr2 == bssid else dot11_packet.addr2
+
+            if dot11_packet.addr2 != bssid:
+                client_mac = dot11_packet.addr2
         elif len(dot11_ds_bits) == 1:
             if "to-DS" in dot11_ds_bits:
                 bssid = dot11_packet.addr1
@@ -38,7 +41,6 @@ def handle_dot11_header(packet: Packet):
                 client_mac = dot11_packet.addr1
         else:  # to-DS & from-DS
             bssid = dot11_packet.addr2
-            client_mac = None
 
         if ScapyUtils.is_multicast_mac(bssid):
             bssid = None
@@ -107,7 +109,7 @@ def handle_beacon(packet: Packet):
     encryption_types = ", ".join(dot11elts_info["encryption_types"])
     cipher_types = ", ".join(dot11elts_info["cipher_types"])
     authn_types = ", ".join(dot11elts_info["authn_types"])
-    hides_ssid = not ssid
+    hides_ssid = ssid == ""
     ess = None
     bssid = packet[Dot11].addr3
 

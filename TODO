@@ -1,14 +1,14 @@
 - TODO:
-	* Hides SSID attr.
-	* Recon WEP cipher and authn types.
-    * Improve deauth module.
     * Metasploit-like CLI.
 
 - DOING:
 
 - ON HOLD:
+    * Recon WEP authn types (requires parsing of 802.11 deauth res).
+    * Recon WEP enc types (requires parsing of 802.11 data packets).
 
 - DONE:
+    * Hides SSID attr.
     * Check iface channel vs 802.11 IE channel.
     * Recon 802.11 header.
 	* Recon WPA / WPA2 cipher and authn types.
