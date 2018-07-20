@@ -38,9 +38,14 @@ class ScapyUtils:
         10: "CCMP-256"
     }
 
-    authn_type_ids = {
+    wpa_authn_type_ids = {
         1: "MGT",
         2: "PSK",
+    }
+
+    wep_authn_type_ids = {
+        0: "OPN",
+        1: "SKA"
     }
 
     @staticmethod
@@ -74,7 +79,8 @@ class ScapyUtils:
                                         process_list(cipher_types_count_offset)}
 
             authn_types_count_offset = 8 + len(sec_info["cipher_types"]) * 4
-            sec_info["authn_types"] = {ScapyUtils.authn_type_ids[id] for id in process_list(authn_types_count_offset)}
+            sec_info["authn_types"] = {ScapyUtils.wpa_authn_type_ids[id] for id in
+                                       process_list(authn_types_count_offset)}
         except:
             pass
 

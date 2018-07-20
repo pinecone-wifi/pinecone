@@ -4,10 +4,10 @@
 - DOING:
 
 - ON HOLD:
-    * Recon WEP authn types (requires parsing of 802.11 deauth res).
     * Recon WEP enc types (requires parsing of 802.11 data packets).
 
 - DONE:
+    * Recon WEP authn types (requires parsing of 802.11 auth res).
     * Hides SSID attr.
     * Check iface channel vs 802.11 IE channel.
     * Recon 802.11 header.

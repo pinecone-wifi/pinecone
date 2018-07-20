@@ -7,7 +7,7 @@ from sys import stderr
 
 from pony.orm import *
 from pyric import pyw
-from scapy.layers.dot11 import sniff, Packet, Dot11, Dot11Elt, Dot11ProbeReq, Dot11Beacon
+from scapy.layers.dot11 import sniff, Packet, Dot11, Dot11Elt, Dot11ProbeReq, Dot11Beacon, Dot11Auth
 
 from pinecone.core.database import Client, ExtendedServiceSet, ProbeReq, BasicServiceSet, Connection
 from pinecone.core.utils import IfaceUtils, ScapyUtils
@@ -75,6 +75,18 @@ def handle_dot11_header(packet: Packet):
                 if (client_mac, bssid) not in connections_cache:
                     connections_cache.add((client_mac, bssid))
                     print("[i] Detected connection between client ({}) and BSS (BSSID: {})".format(client, bssid))
+
+
+@db_session
+def handle_authn_res(packet: Packet):
+    authn_packet = packet[Dot11Auth]
+
+    if authn_packet.sprintf("%status%") == "success" and authn_packet.seqnum in {2, 4}:
+        bssid = packet[Dot11].addr3
+        bss = BasicServiceSet[bssid]
+
+        if "WEP" in bss.encryption_types and authn_packet.algo in ScapyUtils.wep_authn_type_ids:
+            bss.authn_types = ScapyUtils.wep_authn_type_ids[authn_packet.algo]
 
 
 @db_session
@@ -150,10 +162,12 @@ def handle_packet(packet: Packet):
         if packet.haslayer(Dot11):
             handle_dot11_header(packet)
 
-            if packet.haslayer(Dot11ProbeReq):
-                handle_probe_req(packet)
-            elif packet.haslayer(Dot11Beacon):
+            if packet.haslayer(Dot11Beacon):
                 handle_beacon(packet)
+            elif packet.haslayer(Dot11ProbeReq):
+                handle_probe_req(packet)
+            elif packet.haslayer(Dot11Auth):
+                handle_authn_res(packet)
     except Exception as e:
         print("\n[!] Exception while handling packet: {}\n{}".format(e, packet.show(dump=True)), file=stderr)
 
