@@ -92,8 +92,6 @@ def handle_authn_res(packet: Packet):
 @db_session
 def handle_probe_req(packet: Packet):
     now = datetime.now()
-    client_mac = packet[Dot11].addr2
-    client = Client[client_mac]
     ssid = ScapyUtils.process_dot11elts(packet[Dot11Elt])["ssid"]
 
     if ssid:
@@ -101,6 +99,9 @@ def handle_probe_req(packet: Packet):
             ess = ExtendedServiceSet[ssid]
         except:
             ess = ExtendedServiceSet(ssid=ssid)
+
+        client_mac = packet[Dot11].addr2
+        client = Client[client_mac]
 
         try:
             ProbeReq[client, ess].last_seen = now
@@ -116,14 +117,8 @@ def handle_probe_req(packet: Packet):
 def handle_beacon(packet: Packet):
     now = datetime.now()
     dot11elts_info = ScapyUtils.process_dot11elts(packet[Dot11Elt])
-    ssid = dot11elts_info["ssid"]
     channel = dot11elts_info["channel"]
     encryption_types = ", ".join(dot11elts_info["encryption_types"])
-    cipher_types = ", ".join(dot11elts_info["cipher_types"])
-    authn_types = ", ".join(dot11elts_info["authn_types"])
-    hides_ssid = ssid == ""
-    ess = None
-    bssid = packet[Dot11].addr3
 
     if channel is None:
         channel = iface_current_channel
@@ -131,11 +126,19 @@ def handle_beacon(packet: Packet):
     if not encryption_types:
         encryption_types = "WEP" if "privacy" in str(packet[Dot11Beacon].cap) else "OPN"
 
+    ssid = dot11elts_info["ssid"]
+    ess = None
+
     if ssid:
         try:
             ess = ExtendedServiceSet[ssid]
         except:
             ess = ExtendedServiceSet(ssid=ssid)
+
+    cipher_types = ", ".join(dot11elts_info["cipher_types"])
+    authn_types = ", ".join(dot11elts_info["authn_types"])
+    hides_ssid = ssid == ""
+    bssid = packet[Dot11].addr3
 
     bss = BasicServiceSet[bssid]
     bss.channel = channel
