@@ -4,7 +4,7 @@
 - DOING:
 
 - ON HOLD:
-    * Recon WEP enc types (requires parsing of 802.11 data packets).
+    * Recon specific WEP enc types (requires parsing of 802.11 data packets).
 
 - DONE:
     * Recon WEP authn types (requires parsing of 802.11 auth res).

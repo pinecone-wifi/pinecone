@@ -27,7 +27,7 @@ class IfaceUtils:
 
 
 class ScapyUtils:
-    cipher_type_ids = {
+    wpa_cipher_type_ids = {
         1: "WEP40",
         2: "TKIP",
         3: "WRAP",
@@ -76,7 +76,7 @@ class ScapyUtils:
             return set(sec_dot11elt.info[ids_offset:ids_offset + 4 * count:4])
 
         try:
-            sec_info["cipher_types"].update({ScapyUtils.cipher_type_ids.get(id) for id in
+            sec_info["cipher_types"].update({ScapyUtils.wpa_cipher_type_ids.get(id) for id in
                                              process_list(cipher_types_count_offset)})
 
             authn_types_count_offset = 8 + len(sec_info["cipher_types"]) * 4

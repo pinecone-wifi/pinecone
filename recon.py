@@ -85,7 +85,7 @@ def handle_authn_res(packet: Packet):
         bssid = packet[Dot11].addr3
         bss = BasicServiceSet[bssid]
 
-        if "WEP" in bss.encryption_types and authn_packet.algo in ScapyUtils.wep_authn_type_ids:
+        if bss.encryption_types == "WEP" and authn_packet.algo in ScapyUtils.wep_authn_type_ids:
             bss.authn_types = ScapyUtils.wep_authn_type_ids[authn_packet.algo]
 
 
@@ -115,7 +115,6 @@ def handle_probe_req(packet: Packet):
 
 @db_session
 def handle_beacon(packet: Packet):
-    now = datetime.now()
     dot11elts_info = ScapyUtils.process_dot11elts(packet[Dot11Elt])
     channel = dot11elts_info["channel"]
     encryption_types = ", ".join(dot11elts_info["encryption_types"])
@@ -135,17 +134,21 @@ def handle_beacon(packet: Packet):
         except:
             ess = ExtendedServiceSet(ssid=ssid)
 
-    cipher_types = ", ".join(dot11elts_info["cipher_types"])
-    authn_types = ", ".join(dot11elts_info["authn_types"])
     hides_ssid = ssid == ""
     bssid = packet[Dot11].addr3
+    cipher_types = ", ".join(dot11elts_info["cipher_types"])
+    authn_types = ", ".join(dot11elts_info["authn_types"])
 
     bss = BasicServiceSet[bssid]
     bss.channel = channel
     bss.encryption_types = encryption_types
-    bss.cipher_types = cipher_types
-    bss.authn_types = authn_types
-    bss.last_seen = now
+
+    if encryption_types == "WEP":
+        bss.cipher_types = "WEP"
+    else:
+        bss.cipher_types = cipher_types
+        bss.authn_types = authn_types
+
     bss.ess = ess
     bss.hides_ssid = hides_ssid
 
