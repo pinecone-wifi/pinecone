@@ -74,7 +74,7 @@ def handle_dot11_header(packet: Packet):
 
                 if (client_mac, bssid) not in connections_cache:
                     connections_cache.add((client_mac, bssid))
-                    print("[i] Detected connection between client ({}) and BSS (BSSID: {})".format(client, bssid))
+                    print("[i] Detected connection between client ({}) and BSS (BSSID: {})".format(client, bss.bssid))
 
 
 @db_session
@@ -156,11 +156,12 @@ def handle_beacon(packet: Packet):
         bssids_cache.add(bssid)
 
         ssid = "\"{}\"".format(ssid) if ssid else "<empty>"
-        print("[i] Detected AP (SSID: {}, BSSID: {}, ch: {}, enc: ({}), cipher: ({}), authn: ({})).".format(ssid, bssid,
-                                                                                                            channel,
-                                                                                                            encryption_types,
-                                                                                                            cipher_types,
-                                                                                                            authn_types))
+        print("[i] Detected AP (SSID: {}, BSSID: {}, ch: {}, enc: ({}), cipher: ({}), authn: ({})).".format(ssid,
+                                                                                                            bss.bssid,
+                                                                                                            bss.channel,
+                                                                                                            bss.encryption_types,
+                                                                                                            bss.cipher_types,
+                                                                                                            bss.authn_types))
 
 
 def handle_packet(packet: Packet):
@@ -202,7 +203,11 @@ if __name__ == "__main__":
 
     while running:
         for channel in chann_hops:
-            pyw.chset(interface, channel)
+            try:
+                pyw.chset(interface, channel)
+            except:
+                continue
+
             iface_current_channel = channel
             sniff(iface=args.iface, prn=handle_packet, timeout=3, store=False)
 
