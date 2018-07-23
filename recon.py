@@ -10,7 +10,8 @@ from pyric import pyw
 from scapy.layers.dot11 import sniff, Packet, Dot11, Dot11Elt, Dot11ProbeReq, Dot11Beacon, Dot11Auth
 
 from pinecone.core.database import Client, ExtendedServiceSet, ProbeReq, BasicServiceSet, Connection
-from pinecone.core.utils import IfaceUtils, ScapyUtils
+from pinecone.utils.interface import set_monitor_mode
+from pinecone.utils.scapy import is_multicast_mac, process_dot11elts, WEP_AUTHN_TYPE_IDS
 
 bssids_cache = set()
 clients_cache = set()
@@ -42,10 +43,10 @@ def handle_dot11_header(packet: Packet):
         else:  # to-DS & from-DS
             bssid = dot11_packet.addr2
 
-        if ScapyUtils.is_multicast_mac(bssid):
+        if is_multicast_mac(bssid):
             bssid = None
 
-        if client_mac and ScapyUtils.is_multicast_mac(client_mac):
+        if client_mac and is_multicast_mac(client_mac):
             client_mac = None
 
         bss = None
@@ -85,14 +86,14 @@ def handle_authn_res(packet: Packet):
         bssid = packet[Dot11].addr3
         bss = BasicServiceSet[bssid]
 
-        if bss.encryption_types == "WEP" and authn_packet.algo in ScapyUtils.wep_authn_type_ids:
-            bss.authn_types = ScapyUtils.wep_authn_type_ids[authn_packet.algo]
+        if bss.encryption_types == "WEP" and authn_packet.algo in WEP_AUTHN_TYPE_IDS:
+            bss.authn_types = WEP_AUTHN_TYPE_IDS[authn_packet.algo]
 
 
 @db_session
 def handle_probe_req(packet: Packet):
     now = datetime.now()
-    ssid = ScapyUtils.process_dot11elts(packet[Dot11Elt])["ssid"]
+    ssid = process_dot11elts(packet[Dot11Elt])["ssid"]
 
     if ssid:
         try:
@@ -115,7 +116,7 @@ def handle_probe_req(packet: Packet):
 
 @db_session
 def handle_beacon(packet: Packet):
-    dot11elts_info = ScapyUtils.process_dot11elts(packet[Dot11Elt])
+    dot11elts_info = process_dot11elts(packet[Dot11Elt])
     channel = dot11elts_info["channel"]
     encryption_types = ", ".join(dot11elts_info["encryption_types"])
 
@@ -199,7 +200,7 @@ if __name__ == "__main__":
     signal.signal(signal.SIGTERM, sig_exit_handler)
     signal.signal(signal.SIGINT, sig_exit_handler)
 
-    interface = IfaceUtils.set_monitor_mode(args.iface)
+    interface = set_monitor_mode(args.iface)
 
     while running:
         for channel in chann_hops:

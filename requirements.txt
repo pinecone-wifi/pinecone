@@ -8,3 +8,4 @@ Jinja2==2.10
 pathlib2==2.3.2
 psutil==5.4.6
 python-iptables==0.13.0
+cmd2==0.9.3

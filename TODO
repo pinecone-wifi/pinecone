@@ -1,7 +1,15 @@
 - TODO:
-    * Metasploit-like CLI.
+    * Improve DB writing performance in recon.
+    * Recon module.
+    * AP module.
+    * WPA handshake stealing module.
+    * "Free wifi" script.
+    * Deauth module.
+    * Rogue WPA enterprise AP script.
 
 - DOING:
+    * Top level interactive CLI.
+    * Module base class.
 
 - ON HOLD:
     * Recon specific WEP enc types (requires parsing of 802.11 data packets).
