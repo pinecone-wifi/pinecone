@@ -8,7 +8,7 @@
     * Rogue WPA enterprise AP script.
 
 - DOING:
-    * Top level interactive CLI.
+    * Interactive CLI.
     * Module base class.
 
 - ON HOLD:
