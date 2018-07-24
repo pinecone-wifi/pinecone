@@ -11,13 +11,13 @@ class BaseModule(ABC):
     }
 
     @classmethod
-    def _update_modules_subparsers(cls, modules_subparsers):
-        mod_id = cls.meta["id"]
+    def _update_module_subparsers(cls, modules_subparsers):
+        module_id = cls.meta["id"]
 
-        mod_parser = modules_subparsers.add_parser(mod_id)
-        commands_parser = mod_parser.add_subparsers(title="Commands")
+        module_parser = modules_subparsers.add_parser(module_id)
+        commands_parser = module_parser.add_subparsers(title="commands")
         run_parser = commands_parser.add_parser("run")
-        run_parser.set_defaults(mod_id=mod_id, func=cls.run)
+        run_parser.set_defaults(module_id=module_id, func=cls.run)
         cls.set_run_parser(run_parser)
 
     @classmethod

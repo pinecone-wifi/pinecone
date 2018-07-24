@@ -7,7 +7,7 @@ from pinecone.utils.interface import set_monitor_mode
 
 class Module(BaseModule):
     meta = {
-        "id": "modules/attack/deauth",
+        "id": "attack/deauth",
         "name": "",
         "author": "",
         "version": "",
@@ -23,10 +23,6 @@ class Module(BaseModule):
         run_parser.add_argument("-n", "--num-packets", default=10, type=int)
 
     def run(self, args):
-        """
-        Run a deauthentication attack.
-        """
-
         interface = set_monitor_mode(args.iface)
         pyw.chset(interface, args.channel)
 
