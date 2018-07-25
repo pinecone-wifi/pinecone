@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 
 class BaseModule(ABC):
-    meta = {
+    META = {
         "id": None,
         "name": None,
         "author": None,

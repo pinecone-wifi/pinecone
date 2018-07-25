@@ -8,7 +8,7 @@ from pinecone.utils.interface import set_monitor_mode
 
 
 class Module(BaseModule):
-    meta = {
+    META = {
         "id": "modules/attack/deauth",
         "name": "",
         "author": "",
@@ -16,11 +16,11 @@ class Module(BaseModule):
         "description": "",
         "options": ArgumentParser()
     }
-    meta["options"].add_argument("-i", "--iface", help="wlan interface", default="wlan0", type=str)
-    meta["options"].add_argument("-b", "--bssid", required=True, type=str)
-    meta["options"].add_argument("-c", "--channel", required=True, type=int)
-    meta["options"].add_argument("--client", default="FF:FF:FF:FF:FF:FF", type=str)
-    meta["options"].add_argument("-n", "--num-packets", default=10, type=int)
+    META["options"].add_argument("-i", "--iface", help="wlan interface", default="wlan0", type=str)
+    META["options"].add_argument("-b", "--bssid", required=True, type=str)
+    META["options"].add_argument("-c", "--channel", required=True, type=int)
+    META["options"].add_argument("--client", default="FF:FF:FF:FF:FF:FF", type=str)
+    META["options"].add_argument("-n", "--num-packets", default=10, type=int)
 
     def run(self, args):
         interface = set_monitor_mode(args.iface)

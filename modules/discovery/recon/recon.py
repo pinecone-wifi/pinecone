@@ -1,7 +1,7 @@
 import signal
+from argparse import ArgumentParser
 from datetime import datetime
 from sys import stderr
-from argparse import ArgumentParser
 
 from pony.orm import *
 from pyric import pyw
@@ -14,7 +14,7 @@ from pinecone.utils.scapy import is_multicast_mac, process_dot11elts, WEP_AUTHN_
 
 
 class Module(BaseModule):
-    meta = {
+    META = {
         "id": "modules/discovery/recon",
         "name": "",
         "author": "",
@@ -22,7 +22,11 @@ class Module(BaseModule):
         "description": "",
         "options": ArgumentParser()
     }
-    meta["options"].add_argument("-i", "--iface", help="wlan interface", default="wlan0", type=str)
+    META["options"].add_argument("-i", "--iface", help="wlan interface", default="wlan0", type=str)
+
+    CHANNEL_HOPS = {
+        "2.4G": (1, 6, 11, 14, 2, 7, 12, 3, 8, 13, 4, 9, 5, 10)
+    }
 
     def __init__(self):
         self.bssids_cache = None
@@ -31,33 +35,31 @@ class Module(BaseModule):
         self.iface_current_channel = None
         self.running = False
 
+    def sig_int_handler(self, signal, frame):
+        self.running = False
+        print("\n[i] Exiting...\n")
+
     def run(self, args):
-        chann_hops = (1, 6, 11, 14, 2, 7, 12, 3, 8, 13, 4, 9, 5, 10)
-
-        self.running = True
-
-        def sig_exit_handler(signal, frame):
-            self.running = False
-            print("\n[i] Exiting...\n")
-
-        signal.signal(signal.SIGTERM, sig_exit_handler)
-        signal.signal(signal.SIGINT, sig_exit_handler)
-
         interface = set_monitor_mode(args.iface)
 
+        prev_sig_handler = signal.signal(signal.SIGINT, self.sig_int_handler)
+
         self.clear_caches()
+        self.running = True
 
         while self.running:
-            for channel in chann_hops:
+            for channel in self.CHANNEL_HOPS["2.4G"]:
                 try:
                     pyw.chset(interface, channel)
                 except:
                     continue
 
-                Module.iface_current_channel = channel
+                self.iface_current_channel = channel
                 sniff(iface=args.iface, prn=self.handle_packet, timeout=3, store=False)
 
                 if not self.running: break
+
+        signal.signal(signal.SIGINT, prev_sig_handler)
 
     def stop(self):
         pass
@@ -66,7 +68,6 @@ class Module(BaseModule):
         self.bssids_cache = set()
         self.clients_cache = set()
         self.connections_cache = set()
-        self.iface_current_channel = None
 
     @db_session
     def handle_dot11_header(self, packet: Packet):

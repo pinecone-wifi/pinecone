@@ -8,12 +8,12 @@ from pathlib2 import Path
 
 
 class Pinecone(cmd2.Cmd):
-    default_prompt = "(pinecone) "
-    prompt_format = "(picone-{}) "
+    DEFAULT_PROMPT = "pinecone > "
+    PROMPT_FORMAT = "picone {}({}) > "
     modules = {}
 
     def __init__(self):
-        self.prompt = self.default_prompt
+        self.prompt = self.DEFAULT_PROMPT
         self.current_module = None
 
         super().__init__()
@@ -30,11 +30,11 @@ class Pinecone(cmd2.Cmd):
                 module = importlib.util.module_from_spec(module_spec)
                 module_spec.loader.exec_module(module)
                 module_class = module.Module
-                cls.modules[module_class.meta["id"]] = module_class()
+                cls.modules[module_class.META["id"]] = module_class()
 
     use_parser = argparse_completer.ACArgumentParser()
-    module_action = use_parser.add_argument("module", type=str, help="module ID")
-    setattr(module_action, argparse_completer.ACTION_ARG_CHOICES, modules)
+    use_module_action = use_parser.add_argument("module", type=str, help="module ID")
+    setattr(use_module_action, argparse_completer.ACTION_ARG_CHOICES, modules)
 
     @cmd2.with_argparser(use_parser)
     def do_use(self, args):
@@ -42,8 +42,9 @@ class Pinecone(cmd2.Cmd):
 
         if args.module in self.modules:
             self.current_module = self.modules[args.module]
-            type(self).do_run = cmd2.with_argparser(self.current_module.meta["options"])(type(self)._do_run)
-            self.prompt = self.prompt_format.format(args.module.split("/")[-1])
+            type(self).do_run = cmd2.with_argparser(self.current_module.META["options"])(type(self)._do_run)
+            self.current_module.META["options"].prog = "run"
+            self.prompt = self.PROMPT_FORMAT.format("module", args.module.replace("modules/", ""))
 
     def _do_run(self, args):
         self.current_module.run(args)
@@ -55,4 +56,4 @@ class Pinecone(cmd2.Cmd):
 
     def do_back(self, args):
         type(self).do_run = type(self)._do_run
-        self.prompt = self.default_prompt
+        self.prompt = self.DEFAULT_PROMPT
