@@ -1,3 +1,5 @@
+from argparse import ArgumentParser
+
 from pyric import pyw
 from scapy.layers.dot11 import RadioTap, Dot11, Dot11Deauth, sendp
 
@@ -7,20 +9,18 @@ from pinecone.utils.interface import set_monitor_mode
 
 class Module(BaseModule):
     meta = {
-        "id": "attack/deauth",
+        "id": "modules/attack/deauth",
         "name": "",
         "author": "",
         "version": "",
-        "description": ""
+        "description": "",
+        "options": ArgumentParser()
     }
-
-    @classmethod
-    def set_run_parser(cls, run_parser):
-        run_parser.add_argument("-i", "--iface", help="wlan interface", default="wlan0", type=str)
-        run_parser.add_argument("-b", "--bssid", required=True, type=str)
-        run_parser.add_argument("-c", "--channel", required=True, type=int)
-        run_parser.add_argument("--client", default="FF:FF:FF:FF:FF:FF", type=str)
-        run_parser.add_argument("-n", "--num-packets", default=10, type=int)
+    meta["options"].add_argument("-i", "--iface", help="wlan interface", default="wlan0", type=str)
+    meta["options"].add_argument("-b", "--bssid", required=True, type=str)
+    meta["options"].add_argument("-c", "--channel", required=True, type=int)
+    meta["options"].add_argument("--client", default="FF:FF:FF:FF:FF:FF", type=str)
+    meta["options"].add_argument("-n", "--num-packets", default=10, type=int)
 
     def run(self, args):
         interface = set_monitor_mode(args.iface)

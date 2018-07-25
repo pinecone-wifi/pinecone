@@ -1,24 +1,28 @@
 import signal
 from datetime import datetime
 from sys import stderr
+from argparse import ArgumentParser
 
 from pony.orm import *
 from pyric import pyw
 from scapy.layers.dot11 import sniff, Packet, Dot11, Dot11Elt, Dot11ProbeReq, Dot11Beacon, Dot11Auth
 
 from pinecone.core.database import Client, ExtendedServiceSet, ProbeReq, BasicServiceSet, Connection
+from pinecone.core.module import BaseModule
 from pinecone.utils.interface import set_monitor_mode
 from pinecone.utils.scapy import is_multicast_mac, process_dot11elts, WEP_AUTHN_TYPE_IDS
-from pinecone.core.module import BaseModule
+
 
 class Module(BaseModule):
     meta = {
-        "id": "discovery/recon",
+        "id": "modules/discovery/recon",
         "name": "",
         "author": "",
         "version": "",
-        "description": ""
+        "description": "",
+        "options": ArgumentParser()
     }
+    meta["options"].add_argument("-i", "--iface", help="wlan interface", default="wlan0", type=str)
 
     def __init__(self):
         self.bssids_cache = None
@@ -27,19 +31,13 @@ class Module(BaseModule):
         self.iface_current_channel = None
         self.running = False
 
-    @classmethod
-    def set_run_parser(cls, run_parser):
-        run_parser.add_argument("-i", "--iface", help="wlan interface", default="wlan0", type=str)
-
     def run(self, args):
         chann_hops = (1, 6, 11, 14, 2, 7, 12, 3, 8, 13, 4, 9, 5, 10)
 
         self.running = True
 
         def sig_exit_handler(signal, frame):
-            global running
             self.running = False
-
             print("\n[i] Exiting...\n")
 
         signal.signal(signal.SIGTERM, sig_exit_handler)
@@ -227,14 +225,3 @@ class Module(BaseModule):
                     self.handle_authn_res(packet)
         except Exception as e:
             print("\n[!] Exception while handling packet: {}\n{}".format(e, packet.show(dump=True)), file=stderr)
-
-
-
-
-
-
-
-
-
-
-
