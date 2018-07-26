@@ -5,7 +5,8 @@ from sys import stderr
 
 from pony.orm import *
 from pyric import pyw
-from scapy.layers.dot11 import sniff, Packet, Dot11, Dot11Elt, Dot11ProbeReq, Dot11Beacon, Dot11Auth
+from scapy.all import sniff, Packet
+from scapy.layers.dot11 import Dot11, Dot11Elt, Dot11ProbeReq, Dot11Beacon, Dot11Auth
 
 from pinecone.core.database import Client, ExtendedServiceSet, ProbeReq, BasicServiceSet, Connection
 from pinecone.core.module import BaseModule
@@ -213,6 +214,7 @@ class Module(BaseModule):
                                                                                                                 bss.cipher_types,
                                                                                                                 bss.authn_types))
 
+    @db_session
     def handle_packet(self, packet: Packet):
         try:
             if packet.haslayer(Dot11):

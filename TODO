@@ -1,5 +1,4 @@
 - TODO:
-    * Improve DB writing performance in recon.
     * AP module.
     * WPA handshake stealing module.
     * "Free wifi" script.
@@ -11,6 +10,7 @@
     * Recon specific WEP enc types (requires parsing of 802.11 data packets).
 
 - DONE:
+    * Improve DB writing performance in recon.
     * Init interactive CLI.
     * Module base class.
     * Deauth module.

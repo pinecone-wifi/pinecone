@@ -19,13 +19,15 @@ class Pinecone(cmd2.Cmd):
         super().__init__()
 
     @classmethod
-    def load_modules(cls):
+    def reload_modules(cls):
+        cls.modules = {}
         modules_it = Path(sys.path[0], "modules").rglob("*.py")
 
         for py_file_path in modules_it:
             if py_file_path.stem == py_file_path.parent.name:
-                module_name = re.search("modules/.*{}".format(py_file_path.stem), py_file_path.as_posix())[0].replace(
-                    "/", ".")
+                module_name = "pinecone.{}".format(
+                    re.search("modules/.*{}".format(py_file_path.stem), py_file_path.parent.as_posix())[0].replace("/",
+                                                                                                                   "."))
                 module_spec = importlib.util.spec_from_file_location(module_name, py_file_path)
                 module = importlib.util.module_from_spec(module_spec)
                 module_spec.loader.exec_module(module)
