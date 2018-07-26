@@ -3,8 +3,8 @@ from subprocess import run
 
 from pathlib2 import Path
 
-from pinecone.core.module import DaemonBaseModule
 from pinecone.core.main import Pinecone
+from pinecone.core.module import DaemonBaseModule
 
 
 class Module(DaemonBaseModule):
@@ -23,7 +23,7 @@ class Module(DaemonBaseModule):
     META["options"].add_argument("-s", "--ssid", default="PINECONEWIFI", type=str)
 
     PROCESS_NAME = "hostapd"
-    CONFIG_TEMPLATE_PATH = Path(Path(__file__).parent, "hostapd_template.conf")
+    CONFIG_TEMPLATE_PATH = Path(Path(__file__).parent, "hostapd_template.conf").resolve()
     CONFIG_FILENAME = "hostapd.conf"
 
     def __init__(self):

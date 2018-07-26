@@ -1,10 +1,10 @@
-from abc import ABC, abstractmethod
 import argparse
 import sys
+from abc import ABC, abstractmethod
 from typing import Generator
 
-from pathlib2 import Path
 from jinja2 import Template
+from pathlib2 import Path
 from psutil import process_iter, Process
 
 from pinecone.core.main import Pinecone
@@ -27,6 +27,7 @@ class BaseModule(ABC):
     @abstractmethod
     def stop(self, cmd: Pinecone) -> None:
         pass
+
 
 class DaemonBaseModule(BaseModule):
     TMP_FOLDER_PATH = Path(sys.path[0], "tmp").resolve()
