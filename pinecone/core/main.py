@@ -20,15 +20,15 @@ class Pinecone(cmd2.Cmd):
 
     @classmethod
     def reload_modules(cls):
-        cls.modules = {}
+        cls.modules.clear()
         modules_it = Path(sys.path[0], "modules").rglob("*.py")
 
         for py_file_path in modules_it:
             if py_file_path.stem == py_file_path.parent.name:
                 module_name = "pinecone.{}".format(
-                    re.search("modules/.*{}".format(py_file_path.stem), py_file_path.parent.as_posix())[0].replace("/",
-                                                                                                                   "."))
-                module_spec = importlib.util.spec_from_file_location(module_name, py_file_path)
+                    re.search("modules/.*{}".format(py_file_path.stem), py_file_path.parent.as_posix()).group().replace(
+                        "/", "."))
+                module_spec = importlib.util.spec_from_file_location(module_name, str(py_file_path))
                 module = importlib.util.module_from_spec(module_spec)
                 module_spec.loader.exec_module(module)
                 module_class = module.Module
@@ -49,12 +49,12 @@ class Pinecone(cmd2.Cmd):
             self.prompt = self.PROMPT_FORMAT.format("module", args.module.replace("modules/", ""))
 
     def _do_run(self, args):
-        self.current_module.run(args)
+        self.current_module.run(args, self)
 
     do_run = _do_run
 
     def do_stop(self, args):
-        pass
+        self.current_module.stop(self)
 
     def do_back(self, args):
         type(self).do_run = type(self)._do_run

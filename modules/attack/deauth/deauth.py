@@ -1,9 +1,10 @@
-from argparse import ArgumentParser
+import argparse
 
 from pyric import pyw
 from scapy.all import sendp
 from scapy.layers.dot11 import RadioTap, Dot11, Dot11Deauth
 
+from pinecone.core.main import Pinecone
 from pinecone.core.module import BaseModule
 from pinecone.utils.interface import set_monitor_mode
 
@@ -15,7 +16,7 @@ class Module(BaseModule):
         "author": "",
         "version": "",
         "description": "",
-        "options": ArgumentParser()
+        "options": argparse.ArgumentParser()
     }
     META["options"].add_argument("-i", "--iface", help="wlan interface", default="wlan0", type=str)
     META["options"].add_argument("-b", "--bssid", required=True, type=str)
@@ -23,7 +24,7 @@ class Module(BaseModule):
     META["options"].add_argument("--client", default="FF:FF:FF:FF:FF:FF", type=str)
     META["options"].add_argument("-n", "--num-packets", default=10, type=int)
 
-    def run(self, args):
+    def run(self, args: argparse.Namespace, cmd: Pinecone) -> None:
         interface = set_monitor_mode(args.iface)
         pyw.chset(interface, args.channel)
 
@@ -36,5 +37,5 @@ class Module(BaseModule):
             if i != -1:
                 i -= 1
 
-    def stop(self):
+    def stop(self, cmd: Pinecone) -> None:
         pass

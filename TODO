@@ -2,7 +2,7 @@
     * AP module.
     * WPA handshake stealing module.
     * "Free wifi" script.
-    * Rogue WPA enterprise AP script.
+    * Rogue WPA enterprise AP script (with hostapd-wpe).
 
 - DOING:
 

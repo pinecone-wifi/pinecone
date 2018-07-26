@@ -1,4 +1,7 @@
 from abc import ABC, abstractmethod
+import argparse
+
+from pinecone.core.main import Pinecone
 
 
 class BaseModule(ABC):
@@ -12,9 +15,9 @@ class BaseModule(ABC):
     }
 
     @abstractmethod
-    def run(self, args):
+    def run(self, args: argparse.Namespace, cmd: Pinecone) -> None:
         pass
 
     @abstractmethod
-    def stop(self):
+    def stop(self, cmd: Pinecone) -> None:
         pass

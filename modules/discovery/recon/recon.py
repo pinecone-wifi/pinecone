@@ -1,7 +1,6 @@
+import argparse
 import signal
-from argparse import ArgumentParser
 from datetime import datetime
-from sys import stderr
 
 from pony.orm import *
 from pyric import pyw
@@ -9,6 +8,7 @@ from scapy.all import sniff, Packet
 from scapy.layers.dot11 import Dot11, Dot11Elt, Dot11ProbeReq, Dot11Beacon, Dot11Auth
 
 from pinecone.core.database import Client, ExtendedServiceSet, ProbeReq, BasicServiceSet, Connection
+from pinecone.core.main import Pinecone
 from pinecone.core.module import BaseModule
 from pinecone.utils.interface import set_monitor_mode
 from pinecone.utils.scapy import is_multicast_mac, process_dot11elts, WEP_AUTHN_TYPE_IDS
@@ -21,7 +21,7 @@ class Module(BaseModule):
         "author": "",
         "version": "",
         "description": "",
-        "options": ArgumentParser()
+        "options": argparse.ArgumentParser()
     }
     META["options"].add_argument("-i", "--iface", help="wlan interface", default="wlan0", type=str)
 
@@ -35,14 +35,15 @@ class Module(BaseModule):
         self.connections_cache = None
         self.iface_current_channel = None
         self.running = False
+        self.cmd = None
 
     def sig_int_handler(self, signal, frame):
         self.running = False
-        print("\n[i] Exiting...\n")
+        self.cmd.pfeedback("\n[i] Exiting...\n")
 
-    def run(self, args):
+    def run(self, args: argparse.Namespace, cmd: Pinecone) -> None:
+        self.cmd = cmd
         interface = set_monitor_mode(args.iface)
-
         prev_sig_handler = signal.signal(signal.SIGINT, self.sig_int_handler)
 
         self.clear_caches()
@@ -62,7 +63,7 @@ class Module(BaseModule):
 
         signal.signal(signal.SIGINT, prev_sig_handler)
 
-    def stop(self):
+    def stop(self, cmd: Pinecone) -> None:
         pass
 
     def clear_caches(self):
@@ -116,7 +117,7 @@ class Module(BaseModule):
 
                 if client_mac not in self.clients_cache:
                     self.clients_cache.add(client_mac)
-                    print("[i] Detected client ({})".format(client))
+                    self.cmd.pfeedback("[i] Detected client ({})".format(client))
 
                 if bss:
                     try:
@@ -126,7 +127,7 @@ class Module(BaseModule):
 
                     if (client_mac, bssid) not in self.connections_cache:
                         self.connections_cache.add((client_mac, bssid))
-                        print(
+                        self.cmd.pfeedback(
                             "[i] Detected connection between client ({}) and BSS (BSSID: {})".format(client, bss.bssid))
 
     @staticmethod
@@ -162,7 +163,7 @@ class Module(BaseModule):
 
             if (client_mac, ssid) not in self.clients_cache:
                 self.clients_cache.add((client_mac, ssid))
-                print("[i] Detected client ({}) probing for ESS ({})".format(client, ess))
+                self.cmd.pfeedback("[i] Detected client ({}) probing for ESS ({})".format(client, ess))
 
     @db_session
     def handle_beacon(self, packet: Packet):
@@ -207,12 +208,13 @@ class Module(BaseModule):
             self.bssids_cache.add(bssid)
 
             ssid = "\"{}\"".format(ssid) if ssid else "<empty>"
-            print("[i] Detected AP (SSID: {}, BSSID: {}, ch: {}, enc: ({}), cipher: ({}), authn: ({})).".format(ssid,
-                                                                                                                bss.bssid,
-                                                                                                                bss.channel,
-                                                                                                                bss.encryption_types,
-                                                                                                                bss.cipher_types,
-                                                                                                                bss.authn_types))
+            self.cmd.pfeedback(
+                "[i] Detected AP (SSID: {}, BSSID: {}, ch: {}, enc: ({}), cipher: ({}), authn: ({})).".format(ssid,
+                                                                                                              bss.bssid,
+                                                                                                              bss.channel,
+                                                                                                              bss.encryption_types,
+                                                                                                              bss.cipher_types,
+                                                                                                              bss.authn_types))
 
     @db_session
     def handle_packet(self, packet: Packet):
@@ -227,4 +229,4 @@ class Module(BaseModule):
                 elif packet.haslayer(Dot11Auth):
                     self.handle_authn_res(packet)
         except Exception as e:
-            print("\n[!] Exception while handling packet: {}\n{}".format(e, packet.show(dump=True)), file=stderr)
+            self.cmd.perror("[!] Exception while handling packet: {}\n{}".format(e, packet.show(dump=True)))
