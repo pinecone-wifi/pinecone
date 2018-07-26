@@ -29,7 +29,7 @@ class Module(DaemonBaseModule):
     def __init__(self):
         super().__init__()
 
-    def _launch(self) -> int:
+    def launch(self) -> int:
         return run([self.PROCESS_NAME, "-B", str(self.config_path)]).returncode
 
     def run(self, args: argparse.Namespace, cmd: Pinecone) -> None:

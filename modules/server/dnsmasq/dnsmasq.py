@@ -34,7 +34,7 @@ class Module(DaemonBaseModule):
 
         super().__init__()
 
-    def _launch(self) -> int:
+    def launch(self) -> int:
         return run([self.PROCESS_NAME, "-C", str(self.config_path)]).returncode
 
     def reload_custom_hosts(self):

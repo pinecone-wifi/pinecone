@@ -50,7 +50,7 @@ class DaemonBaseModule(BaseModule):
             self.process = None
 
     @abstractmethod
-    def _launch(self) -> int:
+    def launch(self) -> int:
         pass
 
     def run(self, args: argparse.Namespace, cmd: Pinecone) -> None:
@@ -60,7 +60,7 @@ class DaemonBaseModule(BaseModule):
         self.TMP_FOLDER_PATH.mkdir(exist_ok=True)
         self.config_path.write_text(config_template.render(vars(args)))
 
-        if self._launch() == 0:
+        if self.launch() == 0:
             self.process = next(self._search_same_procs(), None)
 
     @staticmethod
