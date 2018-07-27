@@ -9,7 +9,7 @@ from pinecone.core.module import DaemonBaseModule
 
 class Module(DaemonBaseModule):
     META = {
-        "id": "modules/server/hostapd",
+        "id": "modules/daemon/hostapd",
         "name": "",
         "author": "",
         "version": "",

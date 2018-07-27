@@ -11,7 +11,7 @@ from pinecone.core.module import DaemonBaseModule
 
 class Module(DaemonBaseModule):
     META = {
-        "id": "modules/server/dnsmasq",
+        "id": "modules/daemon/dnsmasq",
         "name": "",
         "author": "",
         "version": "",
