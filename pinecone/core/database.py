@@ -1,5 +1,5 @@
 from datetime import datetime
-from sys import modules
+import sys
 
 from pathlib2 import Path
 from pony.orm import *
@@ -72,7 +72,7 @@ class Client(db.Entity):
         return "MAC: {}".format(self.mac)
 
 
-DB_PATH = str(Path(Path(modules["__main__"].__file__).parent, "db", "database.sqlite").resolve())
+DB_PATH = str(Path(sys.path[0], "db", "database.sqlite").resolve())
 Path(DB_PATH).parent.mkdir(exist_ok=True)
 
 print("[i] Database file:", DB_PATH)

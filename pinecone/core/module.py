@@ -16,7 +16,8 @@ class BaseModule(ABC):
         "author": None,
         "version": None,
         "description": None,
-        "options": None
+        "options": None,
+        "depends": None
     }  # type: Dict[str, Any]
 
     @abstractmethod

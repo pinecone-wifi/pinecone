@@ -30,10 +30,10 @@ class Module(DaemonBaseModule):
     def __init__(self):
         super().__init__()
 
-    def launch(self) -> int:
+    def launch(self):
         return run([self.PROCESS_NAME, "-B", str(self.config_path)]).returncode
 
-    def run(self, args: argparse.Namespace, cmd: Pinecone) -> Any:
+    def run(self, args, cmd):
         for wpaSupplicantProc in self.search_procs("wpa_supplicant"):
             if any(args.iface in cmdLine for cmdLine in wpaSupplicantProc.cmdline()):
                 wpaSupplicantProc.terminate()

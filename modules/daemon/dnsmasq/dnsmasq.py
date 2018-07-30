@@ -35,7 +35,7 @@ class Module(DaemonBaseModule):
 
         super().__init__()
 
-    def launch(self) -> int:
+    def launch(self):
         return run([self.PROCESS_NAME, "-C", str(self.config_path)]).returncode
 
     def reload_custom_hosts(self) -> None:
@@ -48,7 +48,7 @@ class Module(DaemonBaseModule):
             "custom_hosts": self.custom_hosts
         })
 
-    def run(self, args: argparse.Namespace, cmd: Pinecone) -> Any:
+    def run(self, args, cmd):
         self._render_custom_hosts_file()
         args.custom_hosts_path = self.custom_hosts_path
 

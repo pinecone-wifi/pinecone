@@ -42,7 +42,7 @@ class Module(BaseModule):
         self.running = False
         self.cmd.pfeedback("\n[i] Exiting...\n")
 
-    def run(self, args: argparse.Namespace, cmd: Pinecone) -> Any:
+    def run(self, args, cmd):
         self.cmd = cmd
         interface = set_monitor_mode(args.iface)
         prev_sig_handler = signal.signal(signal.SIGINT, self.sig_int_handler)
@@ -64,7 +64,7 @@ class Module(BaseModule):
 
         signal.signal(signal.SIGINT, prev_sig_handler)
 
-    def stop(self, cmd: Pinecone) -> Any:
+    def stop(self, cmd):
         pass
 
     def clear_caches(self) -> None:

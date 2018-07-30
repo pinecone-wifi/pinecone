@@ -4,11 +4,11 @@ from jinja2 import Template
 from pathlib2 import Path
 
 
-def to_args_str(args: Dict[str, Any]):
+def to_args_str(args: Dict[str, Any]) -> str:
     return " ".join('--{} "{}"'.format(arg, value) for arg, value in args.items())
 
 
-def render_template(template_path: Union[Path, str], rendered_path: Union[Path, str], render_args: Any):
+def render_template(template_path: Union[Path, str], rendered_path: Union[Path, str], render_args: Any) -> None:
     template_path = Path(template_path)
     rendered_path = Path(rendered_path)
 

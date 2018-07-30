@@ -19,7 +19,7 @@ class Module(BaseScript):
         "author": "",
         "version": "",
         "description": "",
-        "options": argparse.ArgumentParser(),
+        "options": argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter),
         "depends": {"modules/daemon/dnsmasq", "modules/daemon/hostapd"}
     }  # type: Dict[str, Any]
     META["options"].add_argument("-i", "--iface", help="AP mode capable WLAN interface.", default="wlan0", type=str)
@@ -37,9 +37,9 @@ class Module(BaseScript):
     META["options"].add_argument("--dhcp-lease-time", help="DHCP lease time.", default="12h", type=str)
 
     START_SCRIPT_TEMPLATE_PATH = Path(Path(__file__).parent, "start_ap_template").resolve()  # type: Path
-    START_SCRIPT_FILENAME = "start_ap_template"  # type: str
+    START_SCRIPT_FILENAME = "start_ap_script"  # type: str
 
-    STOP_SCRIPT_PATH = "stop_ap_template"  # type: Path
+    STOP_SCRIPT_PATH = Path(Path(__file__).parent, "stop_ap_script").resolve()  # type: Path
 
     def __init__(self):
         super().__init__()
@@ -71,5 +71,9 @@ class Module(BaseScript):
         nat_rule.target = nat_rule.create_target("MASQUERADE")
         iptc.Chain(iptc.Table(iptc.Table.NAT), "POSTROUTING").append_rule(nat_rule)
 
-    def stop(self, cmd: Pinecone):
-        pass
+    def stop(self, cmd):
+        super().stop(cmd)
+
+        run(["sysctl", "-w", "net.ipv4.ip_forward=0"])
+
+        iptc.Table(iptc.Table.NAT).flush()

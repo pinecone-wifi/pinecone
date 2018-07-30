@@ -25,7 +25,7 @@ class Module(BaseModule):
     META["options"].add_argument("--client", default="FF:FF:FF:FF:FF:FF", type=str)
     META["options"].add_argument("-n", "--num-packets", default=10, type=int)
 
-    def run(self, args: argparse.Namespace, cmd: Pinecone) -> Any:
+    def run(self, args, cmd):
         interface = set_monitor_mode(args.iface)
         pyw.chset(interface, args.channel)
 
@@ -38,5 +38,5 @@ class Module(BaseModule):
             if i != -1:
                 i -= 1
 
-    def stop(self, cmd: Pinecone) -> Any:
+    def stop(self, cmd):
         pass

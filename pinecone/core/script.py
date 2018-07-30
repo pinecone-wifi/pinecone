@@ -1,4 +1,5 @@
 from abc import abstractmethod
+import argparse
 
 from pathlib2 import Path
 
@@ -8,9 +9,6 @@ from pinecone.utils.template import render_template
 
 
 class BaseScript(BaseModule):
-    META = dict(BaseModule.META)
-    META["depends"] = None
-
     START_SCRIPT_TEMPLATE_PATH = None  # type: Path
     START_SCRIPT_FILENAME = None  # type: str
 
@@ -22,9 +20,15 @@ class BaseScript(BaseModule):
 
     def run(self, args, cmd):
         render_template(self.START_SCRIPT_TEMPLATE_PATH, self.start_script_path, args)
-        cmd.do_load([str(self.start_script_path)])
+        cmd.do_back()
+        cmd.do_load(str(self.start_script_path))
+        cmd.runcmds_plus_hooks([])
+        cmd.do_back()
         cmd.do_use(self.META["id"])
 
     def stop(self, cmd):
-        cmd.do_load([str(self.STOP_SCRIPT_PATH)])
+        cmd.do_back()
+        cmd.do_load(str(self.STOP_SCRIPT_PATH))
+        cmd.runcmds_plus_hooks([])
+        cmd.do_back()
         cmd.do_use(self.META["id"])

@@ -1,6 +1,7 @@
 import importlib.util
 import re
 import sys
+import argparse
 
 import cmd2
 from cmd2 import argparse_completer
@@ -21,7 +22,7 @@ class Pinecone(cmd2.Cmd):
         super().__init__()
 
     @classmethod
-    def reload_modules(cls):
+    def reload_modules(cls) -> None:
         cls.modules.clear()
         modules_it = Path(sys.path[0], "modules").rglob("*.py")
 
@@ -41,23 +42,27 @@ class Pinecone(cmd2.Cmd):
     setattr(use_module_action, argparse_completer.ACTION_ARG_CHOICES, modules)
 
     @cmd2.with_argparser(use_parser)
-    def do_use(self, args):
+    def do_use(self, args: argparse.Namespace) -> None:
         """interact with a specified module."""
 
         if args.module in self.modules:
             self.current_module = self.modules[args.module]
             type(self).do_run = cmd2.with_argparser(self.current_module.META["options"])(type(self)._do_run)
             self.current_module.META["options"].prog = "run"
-            self.prompt = self.PROMPT_FORMAT.format("module", args.module.replace("modules/", ""))
 
-    def _do_run(self, args):
+            if args.module.startswith("modules/scripts/"):
+                self.prompt = self.PROMPT_FORMAT.format("script", args.module.replace("modules/scripts/", ""))
+            else:
+                self.prompt = self.PROMPT_FORMAT.format("module", args.module.replace("modules/", ""))
+
+    def _do_run(self, args: argparse.Namespace) -> None:
         self.current_module.run(args, self)
 
     do_run = _do_run
 
-    def do_stop(self, args):
+    def do_stop(self, args: argparse.Namespace = None) -> None:
         self.current_module.stop(self)
 
-    def do_back(self, args):
+    def do_back(self, args: argparse.Namespace = None) -> None:
         type(self).do_run = type(self)._do_run
         self.prompt = self.DEFAULT_PROMPT
