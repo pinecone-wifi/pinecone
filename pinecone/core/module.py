@@ -1,13 +1,13 @@
 import argparse
 import sys
 from abc import ABC, abstractmethod
-from typing import Generator
+from typing import Generator, Dict, Any
 
-from jinja2 import Template
 from pathlib2 import Path
 from psutil import process_iter, Process
 
 from pinecone.core.main import Pinecone
+from pinecone.utils.template import render_template
 
 
 class BaseModule(ABC):
@@ -18,23 +18,23 @@ class BaseModule(ABC):
         "version": None,
         "description": None,
         "options": None
-    }
+    }  # type: Dict[str, Any]
 
     @abstractmethod
-    def run(self, args: argparse.Namespace, cmd: Pinecone) -> None:
+    def run(self, args: argparse.Namespace, cmd: Pinecone) -> Any:
         pass
 
     @abstractmethod
-    def stop(self, cmd: Pinecone) -> None:
+    def stop(self, cmd: Pinecone) -> Any:
         pass
 
 
 class DaemonBaseModule(BaseModule):
-    TMP_FOLDER_PATH = Path(sys.path[0], "tmp").resolve()
+    TMP_FOLDER_PATH = Path(sys.path[0], "tmp").resolve()  # type: Path
 
-    PROCESS_NAME = None
-    CONFIG_TEMPLATE_PATH = None
-    CONFIG_FILENAME = None
+    PROCESS_NAME = None  # type: str
+    CONFIG_TEMPLATE_PATH = None  # type: Path
+    CONFIG_FILENAME = None  # type: str
 
     @abstractmethod
     def __init__(self):
@@ -44,7 +44,7 @@ class DaemonBaseModule(BaseModule):
     def is_running(self) -> bool:
         return self.process is not None and self.process.is_running()
 
-    def stop(self, cmd: Pinecone) -> None:
+    def stop(self, cmd: Pinecone) -> Any:
         if self.is_running():
             self.process.terminate()
             self.process = None
@@ -53,18 +53,16 @@ class DaemonBaseModule(BaseModule):
     def launch(self) -> int:
         pass
 
-    def run(self, args: argparse.Namespace, cmd: Pinecone) -> None:
+    def run(self, args: argparse.Namespace, cmd: Pinecone) -> Any:
         self._term_same_procs()
 
-        config_template = Template(self.CONFIG_TEMPLATE_PATH.read_text())
-        self.TMP_FOLDER_PATH.mkdir(exist_ok=True)
-        self.config_path.write_text(config_template.render(vars(args)))
+        render_template(self.CONFIG_TEMPLATE_PATH, self.config_path, args)
 
         if self.launch() == 0:
             self.process = next(self._search_same_procs(), None)
 
     @staticmethod
-    def search_procs(process_name) -> Generator[Process, None, None]:
+    def search_procs(process_name: str) -> Generator[Process, None, None]:
         for p in process_iter(attrs=["name"]):
             if p.info["name"] == process_name:
                 yield p

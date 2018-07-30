@@ -1,5 +1,6 @@
 import argparse
 from subprocess import run
+from typing import Any
 
 from pathlib2 import Path
 
@@ -23,7 +24,7 @@ class Module(DaemonBaseModule):
     META["options"].add_argument("-s", "--ssid", default="PINECONEWIFI", type=str)
 
     PROCESS_NAME = "hostapd"
-    CONFIG_TEMPLATE_PATH = Path(Path(__file__).parent, "hostapd_template.conf").resolve()
+    CONFIG_TEMPLATE_PATH = Path(Path(__file__).parent, "hostapd_template.conf").resolve()  # type: Path
     CONFIG_FILENAME = "hostapd.conf"
 
     def __init__(self):
@@ -32,7 +33,7 @@ class Module(DaemonBaseModule):
     def launch(self) -> int:
         return run([self.PROCESS_NAME, "-B", str(self.config_path)]).returncode
 
-    def run(self, args: argparse.Namespace, cmd: Pinecone) -> None:
+    def run(self, args: argparse.Namespace, cmd: Pinecone) -> Any:
         for wpaSupplicantProc in self.search_procs("wpa_supplicant"):
             if any(args.iface in cmdLine for cmdLine in wpaSupplicantProc.cmdline()):
                 wpaSupplicantProc.terminate()

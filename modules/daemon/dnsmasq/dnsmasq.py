@@ -1,12 +1,13 @@
 import argparse
 import signal
 from subprocess import run
+from typing import Any
 
-from jinja2 import Template
 from pathlib2 import Path
 
 from pinecone.core.main import Pinecone
 from pinecone.core.module import DaemonBaseModule
+from pinecone.utils.template import render_template
 
 
 class Module(DaemonBaseModule):
@@ -23,10 +24,10 @@ class Module(DaemonBaseModule):
     META["options"].add_argument("-l", "--lease-time", help="DHCP lease time.", default="12h", type=str)
 
     PROCESS_NAME = "dnsmasq"
-    CONFIG_TEMPLATE_PATH = Path(Path(__file__).parent, "dnsmasq_template.conf").resolve()
+    CONFIG_TEMPLATE_PATH = Path(Path(__file__).parent, "dnsmasq_template.conf").resolve()  # type: Path
     CONFIG_FILENAME = "dnsmasq.conf"
 
-    CUSTOM_HOSTS_TEMPLATE_PATH = Path(Path(__file__).parent, "dnsmasq_custom_hosts_template").resolve()
+    CUSTOM_HOSTS_TEMPLATE_PATH = Path(Path(__file__).parent, "dnsmasq_custom_hosts_template").resolve()  # type: Path
 
     def __init__(self):
         self.custom_hosts_path = Path(self.TMP_FOLDER_PATH, "dnsmasq_custom_hosts").resolve()
@@ -37,17 +38,17 @@ class Module(DaemonBaseModule):
     def launch(self) -> int:
         return run([self.PROCESS_NAME, "-C", str(self.config_path)]).returncode
 
-    def reload_custom_hosts(self):
+    def reload_custom_hosts(self) -> None:
         if self.is_running():
             self._render_custom_hosts_file()
             self.process.send_signal(signal.SIGHUP)
 
-    def _render_custom_hosts_file(self):
-        custom_hosts_template = Template(self.CUSTOM_HOSTS_TEMPLATE_PATH.read_text())
-        self.TMP_FOLDER_PATH.mkdir(exist_ok=True)
-        self.custom_hosts_path.write_text(custom_hosts_template.render(custom_hosts=self.custom_hosts))
+    def _render_custom_hosts_file(self) -> None:
+        render_template(self.CUSTOM_HOSTS_TEMPLATE_PATH, self.custom_hosts_path, {
+            "custom_hosts": self.custom_hosts
+        })
 
-    def run(self, args: argparse.Namespace, cmd: Pinecone) -> None:
+    def run(self, args: argparse.Namespace, cmd: Pinecone) -> Any:
         self._render_custom_hosts_file()
         args.custom_hosts_path = self.custom_hosts_path
 

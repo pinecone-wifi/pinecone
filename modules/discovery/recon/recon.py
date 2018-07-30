@@ -1,6 +1,7 @@
 import argparse
 import signal
 from datetime import datetime
+from typing import Any
 
 from pony.orm import *
 from pyric import pyw
@@ -11,7 +12,7 @@ from pinecone.core.database import Client, ExtendedServiceSet, ProbeReq, BasicSe
 from pinecone.core.main import Pinecone
 from pinecone.core.module import BaseModule
 from pinecone.utils.interface import set_monitor_mode
-from pinecone.utils.scapy import is_multicast_mac, process_dot11elts, WEP_AUTHN_TYPE_IDS
+from pinecone.utils.packet import is_multicast_mac, process_dot11elts, WEP_AUTHN_TYPE_IDS
 
 
 class Module(BaseModule):
@@ -41,7 +42,7 @@ class Module(BaseModule):
         self.running = False
         self.cmd.pfeedback("\n[i] Exiting...\n")
 
-    def run(self, args: argparse.Namespace, cmd: Pinecone) -> None:
+    def run(self, args: argparse.Namespace, cmd: Pinecone) -> Any:
         self.cmd = cmd
         interface = set_monitor_mode(args.iface)
         prev_sig_handler = signal.signal(signal.SIGINT, self.sig_int_handler)
@@ -63,16 +64,16 @@ class Module(BaseModule):
 
         signal.signal(signal.SIGINT, prev_sig_handler)
 
-    def stop(self, cmd: Pinecone) -> None:
+    def stop(self, cmd: Pinecone) -> Any:
         pass
 
-    def clear_caches(self):
+    def clear_caches(self) -> None:
         self.bssids_cache = set()
         self.clients_cache = set()
         self.connections_cache = set()
 
     @db_session
-    def handle_dot11_header(self, packet: Packet):
+    def handle_dot11_header(self, packet: Packet) -> None:
         now = datetime.now()
         dot11_packet = packet[Dot11]
 
@@ -132,7 +133,7 @@ class Module(BaseModule):
 
     @staticmethod
     @db_session
-    def handle_authn_res(packet: Packet):
+    def handle_authn_res(packet: Packet) -> None:
         authn_packet = packet[Dot11Auth]
 
         if authn_packet.sprintf("%status%") == "success" and authn_packet.seqnum in {2, 4}:
@@ -143,7 +144,7 @@ class Module(BaseModule):
                 bss.authn_types = WEP_AUTHN_TYPE_IDS[authn_packet.algo]
 
     @db_session
-    def handle_probe_req(self, packet: Packet):
+    def handle_probe_req(self, packet: Packet) -> None:
         now = datetime.now()
         ssid = process_dot11elts(packet[Dot11Elt])["ssid"]
 
@@ -166,7 +167,7 @@ class Module(BaseModule):
                 self.cmd.pfeedback("[i] Detected client ({}) probing for ESS ({})".format(client, ess))
 
     @db_session
-    def handle_beacon(self, packet: Packet):
+    def handle_beacon(self, packet: Packet) -> None:
         dot11elts_info = process_dot11elts(packet[Dot11Elt])
         channel = dot11elts_info["channel"]
         encryption_types = ", ".join(dot11elts_info["encryption_types"])
@@ -217,7 +218,7 @@ class Module(BaseModule):
                                                                                                               bss.authn_types))
 
     @db_session
-    def handle_packet(self, packet: Packet):
+    def handle_packet(self, packet: Packet) -> None:
         try:
             if packet.haslayer(Dot11):
                 self.handle_dot11_header(packet)
