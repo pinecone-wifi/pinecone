@@ -6,6 +6,8 @@ import cmd2
 from cmd2 import argparse_completer
 from pathlib2 import Path
 
+TMP_FOLDER_PATH = Path(sys.path[0], "tmp").resolve()  # type: Path
+
 
 class Pinecone(cmd2.Cmd):
     DEFAULT_PROMPT = "pinecone > "

@@ -1,0 +1,7 @@
+use modules/daemon/hostapd
+run {{ hostapd_args }}
+back
+
+use modules/daemon/dnsmasq
+run {{ dnsmasq_args }}
+back

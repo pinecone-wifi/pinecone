@@ -1,4 +1,3 @@
-"""
 import typing
 from subprocess import run
 
@@ -61,4 +60,3 @@ class AP:
         iptc.Chain(iptc.Table(iptc.Table.NAT), "POSTROUTING").append_rule(nat_rule)
 
         return self.is_running()
-"""

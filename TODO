@@ -5,6 +5,7 @@
     * Rogue WPA enterprise AP script (with hostapd-wpe).
 
 - DOING:
+   * AP script.
 
 - ON HOLD:
     * Recon specific WEP enc types (requires parsing of 802.11 data packets).

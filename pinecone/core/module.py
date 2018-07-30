@@ -1,12 +1,11 @@
 import argparse
-import sys
 from abc import ABC, abstractmethod
 from typing import Generator, Dict, Any
 
 from pathlib2 import Path
 from psutil import process_iter, Process
 
-from pinecone.core.main import Pinecone
+from pinecone.core.main import Pinecone, TMP_FOLDER_PATH
 from pinecone.utils.template import render_template
 
 
@@ -30,8 +29,6 @@ class BaseModule(ABC):
 
 
 class DaemonBaseModule(BaseModule):
-    TMP_FOLDER_PATH = Path(sys.path[0], "tmp").resolve()  # type: Path
-
     PROCESS_NAME = None  # type: str
     CONFIG_TEMPLATE_PATH = None  # type: Path
     CONFIG_FILENAME = None  # type: str
@@ -39,7 +36,7 @@ class DaemonBaseModule(BaseModule):
     @abstractmethod
     def __init__(self):
         self.process = None
-        self.config_path = Path(self.TMP_FOLDER_PATH, self.CONFIG_FILENAME)
+        self.config_path = Path(TMP_FOLDER_PATH, self.CONFIG_FILENAME)
 
     def is_running(self) -> bool:
         return self.process is not None and self.process.is_running()

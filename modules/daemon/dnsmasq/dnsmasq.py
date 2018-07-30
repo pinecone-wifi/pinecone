@@ -5,7 +5,7 @@ from typing import Any
 
 from pathlib2 import Path
 
-from pinecone.core.main import Pinecone
+from pinecone.core.main import Pinecone, TMP_FOLDER_PATH
 from pinecone.core.module import DaemonBaseModule
 from pinecone.utils.template import render_template
 
@@ -30,7 +30,7 @@ class Module(DaemonBaseModule):
     CUSTOM_HOSTS_TEMPLATE_PATH = Path(Path(__file__).parent, "dnsmasq_custom_hosts_template").resolve()  # type: Path
 
     def __init__(self):
-        self.custom_hosts_path = Path(self.TMP_FOLDER_PATH, "dnsmasq_custom_hosts").resolve()
+        self.custom_hosts_path = Path(TMP_FOLDER_PATH, "dnsmasq_custom_hosts").resolve()
         self.custom_hosts = {}
 
         super().__init__()
