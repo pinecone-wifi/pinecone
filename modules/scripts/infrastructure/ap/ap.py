@@ -1,7 +1,6 @@
 import argparse
 from ipaddress import ip_network
 from subprocess import run
-from typing import Dict, Any
 
 import iptc
 from pathlib2 import Path

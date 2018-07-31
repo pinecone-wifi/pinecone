@@ -1,14 +1,16 @@
-from binascii import unhexlify
 from typing import Dict, Any
 
+from scapy.all import *
 from scapy.layers.dot11 import Dot11Elt
 
+import pinecone.core.database as database
+
 WPA_CIPHER_TYPE_IDS = {
-    1: "WEP40",
+    1: "WEP-40",
     2: "TKIP",
     3: "WRAP",
     4: "CCMP-128",
-    5: "WEP104",
+    5: "WEP-104",
     8: "GCMP-128",
     9: "GCMP-256",
     10: "CCMP-256"
@@ -25,8 +27,142 @@ WEP_AUTHN_TYPE_IDS = {
 }
 
 
+# Original source https://github.com/secdev/scapy/blob/1fc08e01f9d88c226e6a2132d6dec2a43eb660dd/scapy/layers/dot11.py#L501
+class AKMSuite(Packet):
+    name = "AKM suite"
+    fields_desc = [
+        X3BytesField("oui", 0x000fac),
+        ByteEnumField("suite", 0x01, {
+            0x00: "Reserved",
+            0x01: "IEEE 802.1X / PMKSA caching",
+            0x02: "PSK"
+        })
+    ]
+
+    def extract_padding(self, s):
+        return "", s
+
+
+# Original source https://github.com/secdev/scapy/blob/1fc08e01f9d88c226e6a2132d6dec2a43eb660dd/scapy/layers/dot11.py#L483
+class RSNCipherSuite(Packet):
+    name = "Cipher suite"
+    fields_desc = [
+        X3BytesField("oui", 0x000fac),
+        ByteEnumField("cipher", 0x04, {
+            0x00: "Use group cipher suite",
+            0x01: "WEP-40",
+            0x02: "TKIP",
+            0x03: "Reserved",
+            0x04: "CCMP",
+            0x05: "WEP-104"
+        })
+    ]
+
+    def extract_padding(self, s):
+        return "", s
+
+
+# Original source https://github.com/secdev/scapy/blob/1fc08e01f9d88c226e6a2132d6dec2a43eb660dd/scapy/layers/dot11.py#L516
+class PMKIDListPacket(Packet):
+    name = "PMKIDs"
+    fields_desc = [
+        LEFieldLenField("nb_pmkids", 0, count_of="pmk_id_list"),
+        FieldListField(
+            "pmkid_list",
+            None,
+            XStrFixedLenField("", "", length=16),
+            count_from=lambda pkt: pkt.nb_pmkids
+        )
+    ]
+
+    def extract_padding(self, s):
+        return "", s
+
+
+# Original source https://github.com/secdev/scapy/blob/1fc08e01f9d88c226e6a2132d6dec2a43eb660dd/scapy/layers/dot11.py#L532
+class Dot11EltRSN(Dot11Elt):
+    name = "RSN information"
+    fields_desc = [
+        ByteField("ID", 48),
+        ByteField("len", None),
+        LEShortField("version", 1),
+        PacketField("group_cipher_suite", RSNCipherSuite(), RSNCipherSuite),
+        LEFieldLenField(
+            "nb_pairwise_cipher_suites",
+            1,
+            count_of="pairwise_cipher_suites"
+        ),
+        PacketListField(
+            "pairwise_cipher_suites",
+            [RSNCipherSuite()],
+            RSNCipherSuite,
+            count_from=lambda p: p.nb_pairwise_cipher_suites
+        ),
+        LEFieldLenField(
+            "nb_akm_suites",
+            1,
+            count_of="akm_suites"
+        ),
+        PacketListField(
+            "akm_suites",
+            [AKMSuite()],
+            AKMSuite,
+            count_from=lambda p: p.nb_akm_suites
+        ),
+        BitField("pre_auth", 0, 1),
+        BitField("no_pairwise", 0, 1),
+        BitField("ptksa_replay_counter", 0, 2),
+        BitField("gtksa_replay_counter", 0, 2),
+        BitField("mfp_required", 0, 1),
+        BitField("mfp_capable", 0, 1),
+        BitField("reserved", 0, 8),
+        ConditionalField(
+            PacketField("pmkids", None, PMKIDListPacket),
+            lambda pkt: (
+                0 if pkt.len is None else
+                pkt.len - (12 + (pkt.nb_pairwise_cipher_suites * 4) +
+                           (pkt.nb_akm_suites * 4)) >= 18)
+        )
+    ]
+
+
+# Edited, original source https://github.com/secdev/scapy/blob/1fc08e01f9d88c226e6a2132d6dec2a43eb660dd/scapy/layers/dot11.py#L578
+class Dot11EltMicrosoftWPA(Dot11Elt):
+    name = "Microsoft WPA"
+    fields_desc = [
+        ByteField("ID", 221),
+        ByteField("len", None),
+        X3BytesField("oui", 0x0050f2),
+        XByteField("type", 0x01),
+        LEShortField("version", 1),
+        PacketField("group_cipher_suite", RSNCipherSuite(), RSNCipherSuite),
+        LEFieldLenField(
+            "nb_pairwise_cipher_suites",
+            1,
+            count_of="pairwise_cipher_suites"
+        ),
+        PacketListField(
+            "pairwise_cipher_suites",
+            [RSNCipherSuite()],
+            RSNCipherSuite,
+            count_from=lambda p: p.nb_pairwise_cipher_suites
+        ),
+        LEFieldLenField(
+            "nb_akm_suites",
+            1,
+            count_of="akm_suites"
+        ),
+        PacketListField(
+            "akm_suites",
+            AKMSuite(),
+            AKMSuite,
+            count_from=lambda p: p.nb_akm_suites
+        )
+    ]
+
+
 def is_multicast_mac(mac: str) -> bool:
-    return (unhexlify(mac[0:2])[0] % 2) != 0
+    return (mac2str(mac)[0] % 2) != 0
 
 
 def _process_security_dot11elt(sec_dot11elt: Dot11Elt) -> Dict[str, Any]:
@@ -39,28 +175,16 @@ def _process_security_dot11elt(sec_dot11elt: Dot11Elt) -> Dict[str, Any]:
 
     if sec_dot11elt_id == "RSNinfo":
         sec_info["encryption_type"] = "WPA2"
-        cipher_types_count_offset = 6
+        sec_dot11elt = Dot11EltRSN(sec_dot11elt)
     elif sec_dot11elt_id == "vendor":
         sec_info["encryption_type"] = "WPA"
-        cipher_types_count_offset = 10
-    else:
-        return sec_info
+        sec_dot11elt = Dot11EltMicrosoftWPA(sec_dot11elt)
 
-    def process_list(offset: int):
-        count = int.from_bytes(sec_dot11elt.info[offset:offset + 2], byteorder="little")
-        ids_offset = offset + 5
-        return set(sec_dot11elt.info[ids_offset:ids_offset + 4 * count:4])
+    sec_info["cipher_types"].update({WPA_CIPHER_TYPE_IDS.get(c.cipher) for c in sec_dot11elt.pairwise_cipher_suites})
+    sec_info["cipher_types"].intersection_update(database.CIPHER_TYPES)
 
-    try:
-        sec_info["cipher_types"].update({WPA_CIPHER_TYPE_IDS.get(id) for id in process_list(cipher_types_count_offset)})
-
-        authn_types_count_offset = 8 + len(sec_info["cipher_types"]) * 4
-        sec_info["authn_types"].update({WPA_AUTHN_TYPE_IDS.get(id) for id in process_list(authn_types_count_offset)})
-    except:
-        pass
-
-    sec_info["cipher_types"].difference_update({None})
-    sec_info["authn_types"].difference_update({None})
+    sec_info["authn_types"].update({WPA_CIPHER_TYPE_IDS.get(s.suite) for s in sec_dot11elt.akm_suites})
+    sec_info["authn_types"].intersection_update(database.AUTHN_TYPES)
 
     return sec_info
 
