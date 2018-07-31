@@ -7,7 +7,6 @@ import iptc
 from pathlib2 import Path
 from pyric import pyw
 
-from pinecone.core.main import Pinecone
 from pinecone.core.script import BaseScript
 from pinecone.utils.template import to_args_str
 
@@ -20,8 +19,8 @@ class Module(BaseScript):
         "version": "",
         "description": "",
         "options": argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter),
-        "depends": {"modules/daemon/dnsmasq", "modules/daemon/hostapd"}
-    }  # type: Dict[str, Any]
+        "depends": {"daemon/dnsmasq", "daemon/hostapd"}
+    }
     META["options"].add_argument("-i", "--iface", help="AP mode capable WLAN interface.", default="wlan0", type=str)
     META["options"].add_argument("-c", "--channel", default=1, type=int)
     META["options"].add_argument("-e", "--encryption", help="AP encryption type.", default="WPA2", type=str)
@@ -37,7 +36,7 @@ class Module(BaseScript):
     META["options"].add_argument("--dhcp-lease-time", help="DHCP lease time.", default="12h", type=str)
 
     START_SCRIPT_TEMPLATE_PATH = Path(Path(__file__).parent, "start_ap_template").resolve()  # type: Path
-    START_SCRIPT_FILENAME = "start_ap_script"  # type: str
+    START_SCRIPT_FILENAME = "start_ap_script"
 
     STOP_SCRIPT_PATH = Path(Path(__file__).parent, "stop_ap_script").resolve()  # type: Path
 

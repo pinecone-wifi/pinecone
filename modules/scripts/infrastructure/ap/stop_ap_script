@@ -1,7 +1,7 @@
-use modules/daemon/hostapd
+use daemon/hostapd
 stop
 back
 
-use modules/daemon/dnsmasq
+use daemon/dnsmasq
 stop
 back

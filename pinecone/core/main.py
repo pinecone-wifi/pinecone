@@ -1,7 +1,7 @@
+import argparse
 import importlib.util
 import re
 import sys
-import argparse
 
 import cmd2
 from cmd2 import argparse_completer
@@ -12,7 +12,7 @@ TMP_FOLDER_PATH = Path(sys.path[0], "tmp").resolve()  # type: Path
 
 class Pinecone(cmd2.Cmd):
     DEFAULT_PROMPT = "pinecone > "
-    PROMPT_FORMAT = "picone {}({}) > "
+    PROMPT_FORMAT = "pcn {}({}) > "
     modules = {}
 
     def __init__(self):

@@ -1,5 +1,4 @@
 from abc import abstractmethod
-import argparse
 
 from pathlib2 import Path
 

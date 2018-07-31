@@ -1,10 +1,8 @@
 import argparse
 from subprocess import run
-from typing import Any
 
 from pathlib2 import Path
 
-from pinecone.core.main import Pinecone
 from pinecone.core.module import DaemonBaseModule
 
 
@@ -15,7 +13,8 @@ class Module(DaemonBaseModule):
         "author": "",
         "version": "",
         "description": "",
-        "options": argparse.ArgumentParser()
+        "options": argparse.ArgumentParser(),
+        "depends": {}
     }
     META["options"].add_argument("-i", "--iface", help="wlan interface", default="wlan0", type=str)
     META["options"].add_argument("-c", "--channel", default=1, type=int)

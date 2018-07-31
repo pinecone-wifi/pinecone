@@ -1,11 +1,9 @@
 import argparse
-from typing import Any
 
 from pyric import pyw
 from scapy.all import sendp
 from scapy.layers.dot11 import RadioTap, Dot11, Dot11Deauth
 
-from pinecone.core.main import Pinecone
 from pinecone.core.module import BaseModule
 from pinecone.utils.interface import set_monitor_mode
 

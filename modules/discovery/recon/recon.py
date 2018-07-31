@@ -1,7 +1,6 @@
 import argparse
 import signal
 from datetime import datetime
-from typing import Any
 
 from pony.orm import *
 from pyric import pyw
@@ -9,7 +8,6 @@ from scapy.all import sniff, Packet
 from scapy.layers.dot11 import Dot11, Dot11Elt, Dot11ProbeReq, Dot11Beacon, Dot11Auth
 
 from pinecone.core.database import Client, ExtendedServiceSet, ProbeReq, BasicServiceSet, Connection
-from pinecone.core.main import Pinecone
 from pinecone.core.module import BaseModule
 from pinecone.utils.interface import set_monitor_mode
 from pinecone.utils.packet import is_multicast_mac, process_dot11elts, WEP_AUTHN_TYPE_IDS

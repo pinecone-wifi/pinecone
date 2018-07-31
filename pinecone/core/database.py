@@ -1,5 +1,5 @@
-from datetime import datetime
 import sys
+from datetime import datetime
 
 from pathlib2 import Path
 from pony.orm import *
