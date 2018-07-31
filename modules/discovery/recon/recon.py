@@ -17,12 +17,13 @@ from pinecone.utils.packet import is_multicast_mac, process_dot11elts, WEP_AUTHN
 
 class Module(BaseModule):
     META = {
-        "id": "modules/discovery/recon",
+        "id": "discovery/recon",
         "name": "",
         "author": "",
         "version": "",
         "description": "",
-        "options": argparse.ArgumentParser()
+        "options": argparse.ArgumentParser(),
+        "depends": {}
     }
     META["options"].add_argument("-i", "--iface", help="wlan interface", default="wlan0", type=str)
 

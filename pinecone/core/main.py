@@ -29,7 +29,7 @@ class Pinecone(cmd2.Cmd):
         for py_file_path in modules_it:
             if py_file_path.stem == py_file_path.parent.name:
                 module_name = "pinecone.{}".format(
-                    re.search("modules/.*{}".format(py_file_path.stem), py_file_path.parent.as_posix()).group().replace(
+                    re.search("modules/.*{}".format(py_file_path.stem), py_file_path.as_posix()).group().replace(
                         "/", "."))
                 module_spec = importlib.util.spec_from_file_location(module_name, str(py_file_path))
                 module = importlib.util.module_from_spec(module_spec)
@@ -50,10 +50,10 @@ class Pinecone(cmd2.Cmd):
             type(self).do_run = cmd2.with_argparser(self.current_module.META["options"])(type(self)._do_run)
             self.current_module.META["options"].prog = "run"
 
-            if args.module.startswith("modules/scripts/"):
-                self.prompt = self.PROMPT_FORMAT.format("script", args.module.replace("modules/scripts/", ""))
+            if args.module.startswith("scripts/"):
+                self.prompt = self.PROMPT_FORMAT.format("script", args.module.replace("scripts/", ""))
             else:
-                self.prompt = self.PROMPT_FORMAT.format("module", args.module.replace("modules/", ""))
+                self.prompt = self.PROMPT_FORMAT.format("module", args.module)
 
     def _do_run(self, args: argparse.Namespace) -> None:
         self.current_module.run(args, self)

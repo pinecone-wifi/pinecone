@@ -14,7 +14,7 @@ from pinecone.utils.template import to_args_str
 
 class Module(BaseScript):
     META = {
-        "id": "modules/scripts/infrastructure/ap",
+        "id": "scripts/infrastructure/ap",
         "name": "",
         "author": "",
         "version": "",

@@ -12,12 +12,13 @@ from pinecone.utils.interface import set_monitor_mode
 
 class Module(BaseModule):
     META = {
-        "id": "modules/attack/deauth",
+        "id": "attack/deauth",
         "name": "",
         "author": "",
         "version": "",
         "description": "",
-        "options": argparse.ArgumentParser()
+        "options": argparse.ArgumentParser(),
+        "depends": {}
     }
     META["options"].add_argument("-i", "--iface", help="wlan interface", default="wlan0", type=str)
     META["options"].add_argument("-b", "--bssid", required=True, type=str)

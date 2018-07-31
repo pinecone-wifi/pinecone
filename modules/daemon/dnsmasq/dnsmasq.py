@@ -12,12 +12,13 @@ from pinecone.utils.template import render_template
 
 class Module(DaemonBaseModule):
     META = {
-        "id": "modules/daemon/dnsmasq",
+        "id": "daemon/dnsmasq",
         "name": "",
         "author": "",
         "version": "",
         "description": "",
-        "options": argparse.ArgumentParser()
+        "options": argparse.ArgumentParser(),
+        "depends": {}
     }
     META["options"].add_argument("-s", "--start-addr", help="DHCP start address.", default="192.168.0.50", type=str)
     META["options"].add_argument("-e", "--end-addr", help="DHCP end address.", default="192.168.0.150", type=str)
