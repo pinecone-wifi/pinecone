@@ -183,7 +183,7 @@ def _process_security_dot11elt(sec_dot11elt: Dot11Elt) -> Dict[str, Any]:
     sec_info["cipher_types"].update({WPA_CIPHER_TYPE_IDS.get(c.cipher) for c in sec_dot11elt.pairwise_cipher_suites})
     sec_info["cipher_types"].intersection_update(database.CIPHER_TYPES)
 
-    sec_info["authn_types"].update({WPA_CIPHER_TYPE_IDS.get(s.suite) for s in sec_dot11elt.akm_suites})
+    sec_info["authn_types"].update({WPA_AUTHN_TYPE_IDS.get(s.suite) for s in sec_dot11elt.akm_suites})
     sec_info["authn_types"].intersection_update(database.AUTHN_TYPES)
 
     return sec_info
