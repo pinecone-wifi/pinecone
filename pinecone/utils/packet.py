@@ -26,6 +26,8 @@ WEP_AUTHN_TYPE_IDS = {
     1: "SKA"
 }
 
+BROADCAST_MAC = "ff:ff:ff:ff:ff:ff"
+
 
 # Original source https://github.com/secdev/scapy/blob/1fc08e01f9d88c226e6a2132d6dec2a43eb660dd/scapy/layers/dot11.py#L501
 class AKMSuite(Packet):
