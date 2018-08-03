@@ -1,7 +1,8 @@
-from typing import Dict, Any
+from typing import Dict, Any, Set
 
 from scapy.all import *
-from scapy.layers.dot11 import Dot11Elt
+from scapy.layers.dot11 import Dot11, Dot11Elt
+from scapy.layers.eap import EAPOL
 
 import pinecone.core.database as database
 
@@ -27,6 +28,45 @@ WEP_AUTHN_TYPE_IDS = {
 }
 
 BROADCAST_MAC = "ff:ff:ff:ff:ff:ff"
+
+
+# Edited, original source https://github.com/secdev/scapy/blob/1fc08e01f9d88c226e6a2132d6dec2a43eb660dd/scapy/contrib/wpa_eapol.py#L24
+class WPA_key(Packet):
+    name = "WPA_key"
+    fields_desc = [ByteField("descriptor_type", 1),
+
+                   # ShortField("key_info", 0),
+                   BitField("key_info_reserved", 0, 2),
+                   FlagsField("key_info_flags", 0, 8,
+                              ["install", "ACK", "MIC", "secure", "error", "request", "encrypted-key-data", "SMK-msg"]),
+                   BitField("key_info_index", 0, 2),
+                   BitEnumField("key_info_type", 0, 1, ["group", "pairwise"]),
+                   BitField("key_info_descriptor_version", 0, 3),
+
+                   LenField("len", None, "H"),
+                   StrFixedLenField("replay_counter", "", 8),
+                   StrFixedLenField("nonce", "", 32),
+                   StrFixedLenField("key_iv", "", 16),
+                   StrFixedLenField("wpa_key_rsc", "", 8),
+                   StrFixedLenField("wpa_key_id", "", 8),
+                   StrFixedLenField("wpa_key_mic", "", 16),
+                   LenField("wpa_key_length", None, "H"),
+                   StrLenField("wpa_key", "", length_from=lambda pkt: pkt.wpa_key_length)]  # noqa: E501
+
+    def extract_padding(self, s):
+        l = self.len
+        return s[:l], s[l:]
+
+    def hashret(self):
+        return chr(self.type) + self.payload.hashret()
+
+    def answers(self, other):
+        if isinstance(other, WPA_key):
+            return 1
+        return 0
+
+
+bind_layers(EAPOL, WPA_key, type=3)
 
 
 # Original source https://github.com/secdev/scapy/blob/1fc08e01f9d88c226e6a2132d6dec2a43eb660dd/scapy/layers/dot11.py#L501
@@ -165,6 +205,51 @@ class Dot11EltMicrosoftWPA(Dot11Elt):
 
 def is_multicast_mac(mac: str) -> bool:
     return (mac2str(mac)[0] % 2) != 0
+
+
+def compare_macs(mac1: str, mac2: str) -> bool:
+    return mac2str(mac1) == mac2str(mac2)
+
+
+def get_wpa_key_info_flags(packet: Packet) -> Set[str]:
+    return {flag for flag in str(packet[WPA_key].key_info_flags).split("+")}
+
+
+def get_dot11_ds_bits(packet: Packet) -> Set[str]:
+    return {flag for flag in str(packet[Dot11].FCfield).split("+") if flag in {"to-DS", "from-DS"}}
+
+
+def get_dot11_addrs_info(packet: Packet) -> Dict[str, Any]:
+    dot11_addrs_info = {
+        "da": None,
+        "sa": None,
+        "bssid": None,
+        "ra": None,
+        "ta": None,
+        "ds_bits": get_dot11_ds_bits(packet)
+    }
+
+    dot11_packet = packet[Dot11]
+
+    if not dot11_addrs_info["ds_bits"]:  # no to-DS & no from-DS
+        dot11_addrs_info["da"] = dot11_packet.addr1
+        dot11_addrs_info["sa"] = dot11_packet.addr2
+        dot11_addrs_info["bssid"] = dot11_packet.addr3
+    elif dot11_addrs_info["ds_bits"] == {"to-DS"}:
+        dot11_addrs_info["bssid"] = dot11_packet.addr1
+        dot11_addrs_info["sa"] = dot11_packet.addr2
+        dot11_addrs_info["da"] = dot11_packet.addr3
+    elif dot11_addrs_info["ds_bits"] == {"from-DS"}:
+        dot11_addrs_info["da"] = dot11_packet.addr1
+        dot11_addrs_info["bssid"] = dot11_packet.addr2
+        dot11_addrs_info["sa"] = dot11_packet.addr3
+    else:  # to-DS & from-DS
+        dot11_addrs_info["ra"] = dot11_packet.addr1
+        dot11_addrs_info["ta"] = dot11_packet.addr2
+        dot11_addrs_info["da"] = dot11_packet.addr3
+        dot11_addrs_info["sa"] = dot11_packet.addr4
+
+    return dot11_addrs_info
 
 
 def _process_security_dot11elt(sec_dot11elt: Dot11Elt) -> Dict[str, Any]:

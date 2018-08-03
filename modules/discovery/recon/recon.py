@@ -10,7 +10,7 @@ from scapy.layers.dot11 import Dot11, Dot11Elt, Dot11ProbeReq, Dot11Beacon, Dot1
 from pinecone.core.database import Client, ExtendedServiceSet, ProbeReq, BasicServiceSet, Connection
 from pinecone.core.module import BaseModule
 from pinecone.utils.interface import set_monitor_mode
-from pinecone.utils.packet import is_multicast_mac, process_dot11elts, WEP_AUTHN_TYPE_IDS
+from pinecone.utils.packet import is_multicast_mac, process_dot11elts, get_dot11_addrs_info, WEP_AUTHN_TYPE_IDS
 
 
 class Module(BaseModule):
@@ -74,26 +74,22 @@ class Module(BaseModule):
     @db_session
     def handle_dot11_header(self, packet: Packet) -> None:
         now = datetime.now()
-        dot11_packet = packet[Dot11]
 
-        if dot11_packet.sprintf("%type%") != "Control":
-            dot11_ds_bits = {flag for flag in str(dot11_packet.FCfield).split("+") if flag in {"to-DS", "from-DS"}}
+        if packet[Dot11].sprintf("%type%") != "Control":
             client_mac = None
+            dot11_addrs_info = get_dot11_addrs_info(packet)
+            dot11_ds_bits = dot11_addrs_info["ds_bits"]
 
-            if not dot11_ds_bits:
-                bssid = dot11_packet.addr3
+            if not dot11_ds_bits:  # no to-DS & no from-DS
+                bssid = dot11_addrs_info["bssid"]
 
-                if dot11_packet.addr2 != bssid:
-                    client_mac = dot11_packet.addr2
-            elif len(dot11_ds_bits) == 1:
-                if "to-DS" in dot11_ds_bits:
-                    bssid = dot11_packet.addr1
-                    client_mac = dot11_packet.addr2
-                else:  # from-DS
-                    bssid = dot11_packet.addr2
-                    client_mac = dot11_packet.addr1
+                if dot11_addrs_info["sa"] != bssid:
+                    client_mac = dot11_addrs_info["sa"]
+            elif len(dot11_ds_bits) == 1:  # to-DS or from-DS
+                bssid = dot11_addrs_info["bssid"]
+                client_mac = dot11_addrs_info["sa"] if "to-DS" in dot11_ds_bits else dot11_addrs_info["da"]
             else:  # to-DS & from-DS
-                bssid = dot11_packet.addr2
+                bssid = dot11_addrs_info["ta"]
 
             if is_multicast_mac(bssid):
                 bssid = None
