@@ -43,7 +43,7 @@ class Pinecone(cmd2.Cmd):
 
     @cmd2.with_argparser(use_parser)
     def do_use(self, args: argparse.Namespace) -> None:
-        """interact with a specified module."""
+        """Interact with the specified module."""
 
         if args.module in self.modules:
             self.current_module = self.modules[args.module]

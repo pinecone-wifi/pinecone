@@ -9,18 +9,18 @@ from pinecone.core.module import DaemonBaseModule
 class Module(DaemonBaseModule):
     META = {
         "id": "daemon/hostapd",
-        "name": "",
-        "author": "",
-        "version": "",
-        "description": "",
-        "options": argparse.ArgumentParser(),
+        "name": "hostapd daemon handler module",
+        "author": "Valentín Blanco (https://github.com/valenbg1/)",
+        "version": "1.0.0",
+        "description": "Manages a hostapd daemon, which provides access point and authentication servers functionalities.",
+        "options": argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter),
         "depends": {}
     }
-    META["options"].add_argument("-i", "--iface", help="wlan interface", default="wlan0", type=str)
-    META["options"].add_argument("-c", "--channel", default=1, type=int)
-    META["options"].add_argument("-e", "--encryption", default="WPA2", type=str)
-    META["options"].add_argument("-p", "--password", default="password12345", type=str)
-    META["options"].add_argument("-s", "--ssid", default="PINECONEWIFI", type=str)
+    META["options"].add_argument("-i", "--iface", help="AP mode capable WLAN interface", default="wlan0")
+    META["options"].add_argument("-c", "--channel", help="AP channel", default=1, type=int)
+    META["options"].add_argument("-e", "--encryption", help="AP encryption", default="WPA2")
+    META["options"].add_argument("-p", "--password", help="AP password", default="password12345")
+    META["options"].add_argument("-s", "--ssid", help="AP SSID", default="PINECONEWIFI")
 
     PROCESS_NAME = "hostapd"
     CONFIG_TEMPLATE_PATH = Path(Path(__file__).parent, "hostapd_template.conf").resolve()  # type: Path

@@ -12,16 +12,16 @@ from pinecone.utils.template import render_template
 class Module(DaemonBaseModule):
     META = {
         "id": "daemon/dnsmasq",
-        "name": "",
-        "author": "",
-        "version": "",
-        "description": "",
-        "options": argparse.ArgumentParser(),
+        "name": "Dnsmasq daemon handler module",
+        "author": "Valentín Blanco (https://github.com/valenbg1/)",
+        "version": "1.0.0",
+        "description": "Manages a dnsmasq daemon server, which provides DNS and DHCP services.",
+        "options": argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter),
         "depends": {}
     }
-    META["options"].add_argument("-s", "--start-addr", help="DHCP start address.", default="192.168.0.50", type=str)
-    META["options"].add_argument("-e", "--end-addr", help="DHCP end address.", default="192.168.0.150", type=str)
-    META["options"].add_argument("-l", "--lease-time", help="DHCP lease time.", default="12h", type=str)
+    META["options"].add_argument("-s", "--start-addr", help="DHCP start address", default="192.168.0.50")
+    META["options"].add_argument("-e", "--end-addr", help="DHCP end address", default="192.168.0.150")
+    META["options"].add_argument("-l", "--lease-time", help="DHCP lease time", default="12h")
 
     PROCESS_NAME = "dnsmasq"
     CONFIG_TEMPLATE_PATH = Path(Path(__file__).parent, "dnsmasq_template.conf").resolve()  # type: Path

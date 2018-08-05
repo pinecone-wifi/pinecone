@@ -19,19 +19,17 @@ class Module(BaseScript):
         "name": "WPA handshake capture script",
         "author": "Valentín Blanco (https://github.com/valenbg1/)",
         "version": "1.0.0",
-        "description": "Capture WPA handshakes by deauthenticating clients and then sniffing for the handshake.",
+        "description": "Captures WPA handshakes by deauthenticating clients and then sniffing for the handshake.",
         "options": argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter),
         "depends": {"attack/deauth"}
     }
-    META["options"].add_argument("-i", "--iface", help="Monitor mode capable WLAN interface.", default="wlan0",
-                                 type=str)
-    META["options"].add_argument("-b", "--bssid", type=str)
-    META["options"].add_argument("-s", "--ssid", type=str)
-    META["options"].add_argument("-c", "--client", help="Client to capture WPA handshake from.", default=BROADCAST_MAC,
-                                 type=str)
-    META["options"].add_argument("--channel", type=int)
-    META["options"].add_argument("--no-deauth", help="Do not deauth client(s).", action="store_true")
-    META["options"].add_argument("--sniff-time", help="Time (in seconds) that the interface will be monitoring.",
+    META["options"].add_argument("-i", "--iface", help="monitor mode capable WLAN interface.", default="wlan0")
+    META["options"].add_argument("-b", "--bssid", help="BSSID of target AP")
+    META["options"].add_argument("-s", "--ssid", help="SSID of target AP")
+    META["options"].add_argument("-c", "--client", help="MAC of target client", default=BROADCAST_MAC)
+    META["options"].add_argument("--channel", help="channel of target AP", type=int)
+    META["options"].add_argument("--no-deauth", help="do not deauth client(s) from AP", action="store_true")
+    META["options"].add_argument("--sniff-time", help="time (in seconds) that the interface will be monitoring",
                                  default=10, type=int)
 
     START_SCRIPT_TEMPLATE_PATH = Path(Path(__file__).parent, "start_wpa_handshake_template").resolve()  # type: Path

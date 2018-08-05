@@ -16,14 +16,14 @@ from pinecone.utils.packet import is_multicast_mac, process_dot11elts, get_dot11
 class Module(BaseModule):
     META = {
         "id": "discovery/recon",
-        "name": "",
-        "author": "",
-        "version": "",
-        "description": "",
-        "options": argparse.ArgumentParser(),
+        "name": "802.11 networks reconnaissance module",
+        "author": "Valentín Blanco (https://github.com/valenbg1/)",
+        "version": "1.0.0",
+        "description": "Detects 802.11 APs and clients info and saves it to a database for further use.",
+        "options": argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter),
         "depends": {}
     }
-    META["options"].add_argument("-i", "--iface", help="wlan interface", default="wlan0", type=str)
+    META["options"].add_argument("-i", "--iface", help="monitor mode capable WLAN interface", default="wlan0")
 
     CHANNEL_HOPS = {
         "2.4G": (1, 6, 11, 14, 2, 7, 12, 3, 8, 13, 4, 9, 5, 10)
