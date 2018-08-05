@@ -12,9 +12,13 @@ WPA_CIPHER_TYPE_IDS = {
     3: "WRAP",
     4: "CCMP-128",
     5: "WEP-104",
+    6: "CMAC",
     8: "GCMP-128",
     9: "GCMP-256",
-    10: "CCMP-256"
+    10: "CCMP-256",
+    11: "GMAC-128",
+    12: "GMAC-256",
+    13: "CMAC-256"
 }
 
 WPA_AUTHN_TYPE_IDS = {
@@ -211,12 +215,12 @@ def compare_macs(mac1: str, mac2: str) -> bool:
     return mac2str(mac1) == mac2str(mac2)
 
 
-def get_wpa_key_info_flags(packet: Packet) -> Set[str]:
-    return {flag for flag in str(packet[WPA_key].key_info_flags).split("+")}
+def get_flags_set(flags: FlagValue) -> Set[str]:
+    return set(str(flags).split("+"))
 
 
 def get_dot11_ds_bits(packet: Packet) -> Set[str]:
-    return {flag for flag in str(packet[Dot11].FCfield).split("+") if flag in {"to-DS", "from-DS"}}
+    return get_flags_set(packet[Dot11].FCfield) & {"to-DS", "from-DS"}
 
 
 def get_dot11_addrs_info(packet: Packet) -> Dict[str, Any]:

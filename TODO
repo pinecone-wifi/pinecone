@@ -5,12 +5,12 @@
     * Network graph report module.
 
 - DOING:
-    * WPA handshake stealing script.
 
 - ON HOLD:
     * Recon specific WEP enc types (requires parsing of 802.11 data packets).
 
 - DONE:
+    * WPA handshake stealing script.
     * AP script.
     * dnsmasq module.
     * hostapd module.

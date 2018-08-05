@@ -9,7 +9,7 @@ from pinecone.core.database import BasicServiceSet, ExtendedServiceSet, Client
 from pinecone.core.script import BaseScript
 from pinecone.utils.interface import set_monitor_mode
 from pinecone.utils.packet import is_multicast_mac, compare_macs, BROADCAST_MAC, get_dot11_addrs_info, WPA_key, \
-    get_wpa_key_info_flags
+    get_flags_set
 from pinecone.utils.template import to_args_str
 
 
@@ -97,7 +97,7 @@ class Module(BaseScript):
                     "bssid": args.bssid,
                     "channel": args.channel,
                     "client": args.client
-                    # "num-packets": args.num_packets
+                    # "num-packets": 10
                 })
 
                 if args.all_clients:
@@ -107,7 +107,7 @@ class Module(BaseScript):
                     cmd.pfeedback(
                         "[i] Deauthenticating client {} from AP {} on channel {}...".format(args.client, args.bssid,
                                                                                             args.channel))
-                # TODO super().run(script_args, cmd)
+                super().run(script_args, cmd)
             else:
                 cmd.pfeedback("[i] Disabled client deauthentication.")
 
@@ -137,7 +137,7 @@ class Module(BaseScript):
                     wpa_key_packet = packet[WPA_key]
 
                     if wpa_key_packet.sprintf("%key_info_type%") == "pairwise":
-                        key_info_flags = get_wpa_key_info_flags(packet)
+                        key_info_flags = get_flags_set(wpa_key_packet.key_info_flags)
                         frame_number = None
 
                         # Frame 1: not install, ACK, not MIC.
