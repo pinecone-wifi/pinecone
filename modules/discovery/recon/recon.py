@@ -1,6 +1,8 @@
 import argparse
 import signal
 from datetime import datetime
+from threading import Thread
+from time import sleep
 
 from pony.orm import *
 from pyric import pyw
@@ -49,18 +51,26 @@ class Module(BaseModule):
         self.clear_caches()
         self.running = True
 
+        sniff_thread = Thread(target=sniff, kwargs={
+            "iface": args.iface,
+            "prn": self.handle_packet,
+            "store": False,
+            "stop_filter": lambda p: not self.running
+        })
+        sniff_thread.start()
+
         while self.running:
             for channel in self.CHANNEL_HOPS["2.4G"]:
+                if not self.running: break
+
                 try:
                     pyw.chset(interface, channel)
+                    self.iface_current_channel = channel
+                    sleep(3)
                 except:
                     continue
 
-                self.iface_current_channel = channel
-                sniff(iface=args.iface, prn=self.handle_packet, timeout=3, store=False)
-
-                if not self.running: break
-
+        sniff_thread.join()
         signal.signal(signal.SIGINT, prev_sig_handler)
 
     def stop(self, cmd):

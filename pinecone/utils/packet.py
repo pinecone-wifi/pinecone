@@ -294,20 +294,22 @@ def process_dot11elts(dot11elts: Dot11Elt) -> Dict[str, Any]:
     while isinstance(dot11elt, Dot11Elt):
         dot11elt_id = dot11elt.sprintf("%ID%")
 
-        if dot11elt_id == "SSID" and dot11elt.len is not None and dot11elt.len == 0 and dot11elt.info == b"":
+        if dot11elts_info[
+            "ssid"] is None and dot11elt_id == "SSID" and dot11elt.len is not None and dot11elt.len == 0 and dot11elt.info == b"":
             dot11elts_info["ssid"] = ""
-        elif dot11elt_id == "SSID" and dot11elt.len and dot11elt.len > 0:
+        elif dot11elts_info["ssid"] is None and dot11elt_id == "SSID" and dot11elt.len and dot11elt.len > 0:
             try:
                 dot11elts_info["ssid"] = dot11elt.info.decode()
             except:
                 pass
-        elif dot11elt_id == "DSset":
+        elif dot11elts_info["channel"] is None and dot11elt_id == "DSset":
             try:
                 dot11elts_info["channel"] = dot11elt.info[0]
             except:
                 pass
-        elif dot11elt_id == "RSNinfo" or (
-                dot11elt_id == "vendor" and dot11elt.info.startswith(b"\x00\x50\xf2\x01\x01\x00")):
+        elif ("WPA2" not in dot11elts_info["encryption_types"] and dot11elt_id == "RSNinfo") or (
+                "WPA" not in dot11elts_info[
+            "encryption_types"] and dot11elt_id == "vendor" and dot11elt.info.startswith(b"\x00\x50\xf2\x01\x01\x00")):
             sec_dot11elt_info = _process_security_dot11elt(dot11elt)
             dot11elts_info["encryption_types"].add(sec_dot11elt_info["encryption_type"])
             dot11elts_info["cipher_types"].update(sec_dot11elt_info["cipher_types"])
