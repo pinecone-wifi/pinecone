@@ -1,16 +1,16 @@
 import argparse
 import json
 
-from pony.orm import db_session
 from pathlib2 import Path
+from pony.orm import db_session
 
-from pinecone.core.module import BaseModule
 from pinecone.core.database import BasicServiceSet, ExtendedServiceSet, Connection, ProbeReq, Client
+from pinecone.core.module import BaseModule
 
 
 class Module(BaseModule):
     META = {
-        "id": "report/db_2_json",
+        "id": "report/db2json",
         "name": "Current recon database to JSON module",
         "author": "Valentín Blanco (https://github.com/valenbg1/)",
         "version": "1.0.0",
