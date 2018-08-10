@@ -1,9 +1,14 @@
 - TODO:
-    * Handle network is down exception in recon module.
+    * Previous deauth attack in AP script ("free Wi-Fi").
+    * Rogue WPA enterprise support in AP script (hostapd-wpe).
+    * Comments in source code.
+    * Autocompleting in CLI commands.
+    * Network graph report module (@rsrdesarrollo).
+    
     * Custom hosts in dnsmasq module.
-    * "Free wifi" script.
-    * Rogue WPA enterprise AP script (with hostapd-wpe).
-    * Network graph report module.
+    * Handle network is down exception in recon module.
+    * Include last_seen field in clients in DB.
+    * Include first_seen fields in DB.
 
 - DOING:
 
