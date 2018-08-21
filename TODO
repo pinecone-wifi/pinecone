@@ -1,6 +1,5 @@
 - TODO:
     * Previous deauth attack in AP script ("free Wi-Fi").
-    * Rogue WPA enterprise support in AP script (hostapd-wpe).
     * Comments in source code.
     * Autocompleting in CLI commands.
     * Network graph report module (@rsrdesarrollo).
@@ -10,6 +9,8 @@
     * Handle network is down exception in recon module.
     * Include last_seen field in clients in DB.
     * Include first_seen fields in DB.
+    * Empty SSIDs with non zero length in IE.
+    * Split script/attack/wpa_handshake functionality in another module.
 
 - DOING:
 
@@ -17,6 +18,7 @@
     * Recon specific WEP enc types (requires parsing of 802.11 data packets).
 
 - DONE:
+    * Rogue WPA enterprise support in AP script (hostapd-wpe).
     * Module template.
     * Recon continuous leave/enter promiscuous mode problem.
     * DB to JSON module.

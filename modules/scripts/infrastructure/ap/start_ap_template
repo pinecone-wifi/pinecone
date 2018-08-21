@@ -1,5 +1,5 @@
-use daemon/hostapd
-run {{ hostapd_args }}
+use daemon/hostapd-wpe
+run {{ hostapd_wpe_args }}
 back
 
 use daemon/dnsmasq

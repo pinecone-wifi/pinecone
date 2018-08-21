@@ -18,17 +18,24 @@ class Module(BaseScript):
         "version": "1.0.0",
         "description": "Runs an AP with DNS and DHCP capabilities.",
         "options": argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter),
-        "depends": {"daemon/dnsmasq", "daemon/hostapd"}
+        "depends": {"daemon/dnsmasq", "daemon/hostapd-wpe"}
     }
     META["options"].add_argument("-i", "--iface", help="AP mode capable WLAN interface", default="wlan0")
     META["options"].add_argument("-c", "--channel", help="AP channel", default=1, type=int)
-    META["options"].add_argument("-e", "--encryption", help="AP encryption", default="WPA2")
-    META["options"].add_argument("-p", "--password", help="AP password", default="password12345")
+    META["options"].add_argument("-e", "--encryption", help="AP encryption", default="WPA2",
+                                 choices=("OPN", "WEP", "WPA", "WPA/WPA2", "WPA2"))
+    META["options"].add_argument("-m", "--mgt", help="use MGT (802.1X) authn mode instead of PSK (for WPA modes)",
+                                 action="store_true")
+    META["options"].add_argument("-p", "--password", help="AP password (only for WEP or any WPA mode with PSK authn)",
+                                 default="password12345")
     META["options"].add_argument("-s", "--ssid", help="AP SSID", default="PINECONEWIFI")
+    META["options"].add_argument("-k", "--karma",
+                                 help="Respond to all directed probe requests (KARMA-style gratuitous probe responses)",
+                                 action="store_true")
     META["options"].add_argument("-o", "--out-iface",
                                  help="output interface (no-LAN packets will be redirected there).", default="eth0")
-    META["options"].add_argument("--router-ip", help="router LAN IP", default="192.168.0.1")
-    META["options"].add_argument("--netmask", help="network netmask", default="255.255.255.0")
+    META["options"].add_argument("-r", "--router-ip", help="router LAN IP", default="192.168.0.1")
+    META["options"].add_argument("-n", "--netmask", help="network netmask", default="255.255.255.0")
     META["options"].add_argument("--dhcp-start-addr", help="DHCP start address", default="192.168.0.50")
     META["options"].add_argument("--dhcp-end-addr", help="DHCP end address", default="192.168.0.150")
     META["options"].add_argument("--dhcp-lease-time", help="DHCP lease time", default="12h")
@@ -43,12 +50,14 @@ class Module(BaseScript):
 
     def run(self, args, cmd):
         script_args = argparse.Namespace()
-        script_args.hostapd_args = to_args_str({
+        script_args.hostapd_wpe_args = to_args_str({
             "iface": args.iface,
             "channel": args.channel,
             "encryption": args.encryption,
+            "mgt": args.mgt,
             "password": args.password,
-            "ssid": args.ssid
+            "ssid": args.ssid,
+            "karma": args.karma
         })
         script_args.dnsmasq_args = to_args_str({
             "start-addr": args.dhcp_start_addr,

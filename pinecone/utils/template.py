@@ -5,7 +5,16 @@ from pathlib2 import Path
 
 
 def to_args_str(args: Dict[str, Any]) -> str:
-    return " ".join('--{} "{}"'.format(arg, value) for arg, value in args.items())
+    args_lst = []
+
+    for arg, value in args.items():
+        if type(value) == bool:
+            if value:
+                args_lst.append("--{}".format(arg))
+        else:
+            args_lst.append('--{} "{}"'.format(arg, value))
+
+    return " ".join(args_lst)
 
 
 def render_template(template_path: Union[Path, str], rendered_path: Union[Path, str], render_args: Any) -> None:
