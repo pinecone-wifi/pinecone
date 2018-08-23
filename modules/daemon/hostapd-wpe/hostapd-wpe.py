@@ -18,7 +18,8 @@ class Module(DaemonBaseModule):
         "options": argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter),
         "depends": {}
     }
-    META["options"].add_argument("-i", "--iface", help="AP mode capable WLAN interface", default="wlan0")
+    META["options"].add_argument("-i", "--iface", help="AP mode capable WLAN interface", default="wlan0",
+                                 metavar="INTERFACE")
     META["options"].add_argument("-c", "--channel", help="AP channel", default=1, type=int)
     META["options"].add_argument("-e", "--encryption", help="AP encryption", default="WPA2",
                                  choices=("OPN", "WEP", "WPA", "WPA/WPA2", "WPA2"))
@@ -28,8 +29,12 @@ class Module(DaemonBaseModule):
                                  default="password12345")
     META["options"].add_argument("-s", "--ssid", help="AP SSID", default="PINECONEWIFI")
     META["options"].add_argument("-k", "--karma",
-                                 help="Respond to all directed probe requests (KARMA-style gratuitous probe responses)",
+                                 help="respond to all directed probe requests (KARMA-style gratuitous probe responses)",
                                  action="store_true")
+    META["options"].add_argument("--mac-acl",
+                                 help="path to a MAC addresses whitelist. If specified, all the clients whose MAC "
+                                      "address is not in this list will be rejected.",
+                                 metavar="MAC_ACL_PATH")
 
     PROCESS_NAME = "hostapd-wpe"
     CONFIG_TEMPLATE_PATH = Path(Path(__file__).parent, "hostapd-wpe_template.conf").resolve()
