@@ -1,16 +1,18 @@
 - TODO:
     * Previous deauth attack in AP script ("free Wi-Fi").
+    * hostapd-wpe log file.
+    * MAC ACL in daemon/hostapd-wpe.
     * Comments in source code.
     * Autocompleting in CLI commands.
     * Network graph report module (@rsrdesarrollo).
 
+    * Save command history.
     * Save AP beacon in PCAP file in script/attack/wpa_handshake module.
     * Custom hosts in dnsmasq module.
-    * Handle network is down exception in recon module.
     * Include last_seen field in clients in DB.
     * Include first_seen fields in DB.
-    * Empty SSIDs with non zero length in IE.
     * Split script/attack/wpa_handshake functionality in another module.
+    * DB transaction error in recon module.
 
 - DOING:
 
@@ -18,6 +20,8 @@
     * Recon specific WEP enc types (requires parsing of 802.11 data packets).
 
 - DONE:
+    * Empty SSIDs with non zero length in recon module.
+    * Handle exceptions when sniffing in recon module.
     * Rogue WPA enterprise support in AP script (hostapd-wpe).
     * Module template.
     * Recon continuous leave/enter promiscuous mode problem.

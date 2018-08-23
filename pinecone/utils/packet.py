@@ -294,14 +294,14 @@ def process_dot11elts(dot11elts: Dot11Elt) -> Dict[str, Any]:
     while isinstance(dot11elt, Dot11Elt):
         dot11elt_id = dot11elt.sprintf("%ID%")
 
-        if dot11elts_info[
-            "ssid"] is None and dot11elt_id == "SSID" and dot11elt.len is not None and dot11elt.len == 0 and dot11elt.info == b"":
-            dot11elts_info["ssid"] = ""
-        elif dot11elts_info["ssid"] is None and dot11elt_id == "SSID" and dot11elt.len and dot11elt.len > 0:
-            try:
-                dot11elts_info["ssid"] = dot11elt.info.decode()
-            except:
-                pass
+        if dot11elts_info["ssid"] is None and dot11elt_id == "SSID" and dot11elt.len is not None:
+            if (dot11elt.len == 0 and dot11elt.info == b"") or (dot11elt.len > 0 and all(n == 0 for n in dot11elt.info)):
+                dot11elts_info["ssid"] = ""
+            elif dot11elt.len > 0:
+                try:
+                    dot11elts_info["ssid"] = dot11elt.info.decode()
+                except:
+                    pass
         elif dot11elts_info["channel"] is None and dot11elt_id == "DSset":
             try:
                 dot11elts_info["channel"] = dot11elt.info[0]

@@ -43,6 +43,13 @@ class Module(BaseModule):
         self.running = False
         self.cmd.pfeedback("\n[i] Exiting...\n")
 
+    def sniff(self, iface: str) -> None:
+        try:
+            sniff(iface=iface, prn=self.handle_packet, store=False, stop_filter=lambda p: not self.running)
+        except Exception as e:
+            self.cmd.perror("[!] Exception while sniffing: {}".format(e))
+            self.running = False
+
     def run(self, args, cmd):
         self.cmd = cmd
         interface = set_monitor_mode(args.iface)
@@ -51,11 +58,8 @@ class Module(BaseModule):
         self.clear_caches()
         self.running = True
 
-        sniff_thread = Thread(target=sniff, kwargs={
-            "iface": args.iface,
-            "prn": self.handle_packet,
-            "store": False,
-            "stop_filter": lambda p: not self.running
+        sniff_thread = Thread(target=self.sniff, kwargs={
+            "iface": args.iface
         })
         sniff_thread.start()
 
