@@ -1,10 +1,10 @@
-- TODO:
+- **TODO:**
     * Previous deauth attack in AP script ("free Wi-Fi").
     * hostapd-wpe log file.
     * Comments in source code.
     * Autocompleting in CLI commands.
     * Network graph report module (@rsrdesarrollo).
-
+    ---------
     * Save command history.
     * Save AP beacon in PCAP file in script/attack/wpa_handshake module.
     * Custom hosts in dnsmasq module.
@@ -13,12 +13,12 @@
     * Split script/attack/wpa_handshake functionality in another module.
     * DB transaction error in recon module.
 
-- DOING:
+- **DOING:**
 
-- ON HOLD:
+- **ON HOLD:**
     * Recon specific WEP enc types (requires parsing of 802.11 data packets).
 
-- DONE:
+- **DONE:**
     * MAC ACL in daemon/hostapd-wpe.
     * Empty SSIDs with non zero length in recon module.
     * Handle exceptions when sniffing in recon module.
