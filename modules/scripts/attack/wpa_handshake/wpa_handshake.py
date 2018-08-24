@@ -111,11 +111,11 @@ class Module(BaseScript):
 
             if args.all_clients:
                 cmd.pfeedback(
-                    "[i] Monitoring for {} secs on channel {} for WPA handshakes between all clients and AP {}...".format(
+                    "[i] Monitoring for {} secs on channel {} WPA handshakes between all clients and AP {}...".format(
                         args.sniff_time, args.channel, args.bssid))
             else:
                 cmd.pfeedback(
-                    "[i] Monitoring for {} secs on channel {} for WPA handshakes between client {} and AP {}...".format(
+                    "[i] Monitoring for {} secs on channel {} WPA handshakes between client {} and AP {}...".format(
                         args.sniff_time, args.channel, args.client, args.bssid))
             sniff(iface=args.iface, prn=self.handle_eapol_packet, timeout=args.sniff_time, store=False)
 

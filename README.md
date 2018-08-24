@@ -1,2 +1,82 @@
-# PiNeconeWifi
+# Pinecone
+Pinecone is a WLAN networks auditing tool, suitable for red team usage. It is extensible via modules, and it's designed to be run in Debian-based operating systems. Pinecone is specially oriented to be used with a Raspberry Pi, as a portable wireless auditing box.
 
+This tool is designed for educational and research purposes only. Please only use it with explicit permission.
+
+## Installation
+For running Pinecone, you need a Debian-based OS (tested on Raspbian and Kali Linux). Pinecone has this requirements:
+* **Python 3.5+**. Your distribution probably comes with Python3 installed, if not it can be installed using `apt-get install python3`.
+* **dnsmasq** (tested with version 2.76). Can be installed using `apt-get install dnsmasq`.
+* **hostapd-wpe** (tested with version 2.6). Can be installed using `apt-get install hostapd-wpe`. If your distribution repository does not have a hostapd-wpe package, you can either try to install it using a [Kali Linux repository pre-compiled package](https://http.kali.org/pool/main/h/hostapd-wpe), or [compile it from source](https://github.com/aircrack-ng/aircrack-ng/tree/master/patches/wpe/hostapd-wpe).
+
+After installing the necessary packages, you can install the Python packages requirements for Pinecone using `pip3 install -r requirements.txt` in the project's root folder.
+
+## User guide
+For starting Pinecone, use `python3 pinecone.py` in the project's root folder:
+```
+root@kali:~/pinecone# python pinecone.py 
+[i] Database file: /root/pinecone/db/database.sqlite
+pinecone > 
+```
+
+Pinecone is controlled via a Metasploit-like command-line interface. You can type `help` to get the list of available commands, or `help 'command'` to get more information about a specific command:
+```
+pinecone > help
+
+Documented commands (type help <topic>):
+========================================
+alias  help     load  pyscript  set    shortcuts  use
+edit   history  py    quit      shell  unalias  
+
+Undocumented commands:
+======================
+back  run  stop
+
+pinecone > help use
+Usage: use module [-h]
+
+Interact with the specified module.
+
+positional arguments:
+  module      module ID
+
+optional arguments:
+  -h, --help  show this help message and exit
+```
+
+Use the command `use 'moduleID'` to activate a Pinecone module. You can use tab autocompletion to see the list of current loaded modules:
+```
+pinecone > use 
+attack/deauth     daemon/hostapd-wpe    report/db2json                  scripts/infrastructure/ap  
+daemon/dnsmasq    discovery/recon       scripts/attack/wpa_handshake
+pinecone > use discovery/recon 
+pcn module(discovery/recon) > 
+```
+
+Every module has options, that can be seen issuing `help run` or `run --help` when a module is activated. Most modules have default values for their options (check them before running):
+```
+pcn module(discovery/recon) > help run
+usage: run [-h] [-i IFACE]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -i IFACE, --iface IFACE
+                        monitor mode capable WLAN interface (default: wlan0)
+```
+
+When a module is activated, you can use the `run [options...]` command to start its functionality. The modules provide feedback of their execution state:
+```
+pcn script(attack/wpa_handshake) > run -s TEST_SSID
+[i] Deauthenticating all clients from AP 00:11:22:33:44:55 on channel 1...
+[i] Monitoring for 10 secs on channel 1 for WPA handshakes between all clients and AP 00:11:22:33:44:55...
+```
+
+<!-- TODO: Stop command. -->
+
+When you are done using a module, you can deactivate it by using the `back` command. You can also activate another module issuing the `use` command again.
+
+Shell commands may be executed with the command `shell` or the shortcut `!`:
+```
+pinecone > !ls
+LICENSE  modules  module_template.py  pinecone  pinecone.py  README.md  requirements.txt  TODO.md
+```
