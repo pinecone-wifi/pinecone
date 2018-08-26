@@ -1,7 +1,7 @@
 # Pinecone
 Pinecone is a WLAN networks auditing tool, suitable for red team usage. It is extensible via modules, and it's designed to be run in Debian-based operating systems. Pinecone is specially oriented to be used with a Raspberry Pi, as a portable wireless auditing box.
 
-This tool is designed for educational and research purposes only. Please only use it with explicit permission.
+This tool is designed for educational and research purposes only. Only use it with explicit permission.
 
 ## Installation
 For running Pinecone, you need a Debian-based OS (tested on Raspbian and Kali Linux). Pinecone has this requirements:
@@ -11,7 +11,7 @@ For running Pinecone, you need a Debian-based OS (tested on Raspbian and Kali Li
 
 After installing the necessary packages, you can install the Python packages requirements for Pinecone using `pip3 install -r requirements.txt` in the project's root folder.
 
-## User guide
+## Usage
 For starting Pinecone, use `python3 pinecone.py` in the project's root folder:
 ```
 root@kali:~/pinecone# python pinecone.py 
@@ -44,7 +44,7 @@ optional arguments:
   -h, --help  show this help message and exit
 ```
 
-Use the command `use 'moduleID'` to activate a Pinecone module. You can use tab autocompletion to see the list of current loaded modules:
+Use the command `use 'moduleID'` to activate a Pinecone module. You can use tab auto-completion to see the list of current loaded modules:
 ```
 pinecone > use 
 attack/deauth     daemon/hostapd-wpe    report/db2json                  scripts/infrastructure/ap  
@@ -71,7 +71,17 @@ pcn script(attack/wpa_handshake) > run -s TEST_SSID
 [i] Monitoring for 10 secs on channel 1 for WPA handshakes between all clients and AP 00:11:22:33:44:55...
 ```
 
-<!-- TODO: Stop command. -->
+If the module runs in background (for example, *scripts/infrastructure/ap*), you can stop it using the `stop` command when the module is running:
+```
+pcn script(infrastructure/ap) > run
+Configuration file: ~/pinecone/tmp/hostapd-wpe.conf
+Using interface wlan0 with hwaddr 3c:6c:6a:5c:07:6b and ssid "PINECONEWIFI"
+wlan0: interface state UNINITIALIZED->ENABLED
+wlan0: AP-ENABLED 
+net.ipv4.ip_forward = 1
+pcn script(infrastructure/ap) > stop
+net.ipv4.ip_forward = 0
+```
 
 When you are done using a module, you can deactivate it by using the `back` command. You can also activate another module issuing the `use` command again.
 

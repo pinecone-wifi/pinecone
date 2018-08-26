@@ -8,11 +8,12 @@ def to_args_str(args: Dict[str, Any]) -> str:
     args_lst = []
 
     for arg, value in args.items():
-        if type(value) == bool:
-            if value:
-                args_lst.append("--{}".format(arg))
-        else:
-            args_lst.append('--{} "{}"'.format(arg, value))
+        if value is not None:
+            if type(value) == bool:
+                if value:
+                    args_lst.append("--{}".format(arg))
+            else:
+                args_lst.append('--{} "{}"'.format(arg, value))
 
     return " ".join(args_lst)
 
