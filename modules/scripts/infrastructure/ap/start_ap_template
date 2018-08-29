@@ -1,3 +1,13 @@
+{% if deauth_args_lst %}
+use attack/deauth
+
+{% for deauth_args in deauth_args_lst %}
+run {{ deauth_args }}
+{% endfor %}
+
+back
+{% endif %}
+
 use daemon/hostapd-wpe
 run {{ hostapd_wpe_args }}
 back

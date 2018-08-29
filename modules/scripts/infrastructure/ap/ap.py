@@ -4,9 +4,11 @@ from subprocess import run
 
 import iptc
 from pathlib2 import Path
+from pony.orm import *
 from pyric import pyw
 
 from pinecone.core.script import BaseScript
+from pinecone.core.database import ExtendedServiceSet
 from pinecone.utils.template import to_args_str
 
 
@@ -16,9 +18,10 @@ class Module(BaseScript):
         "name": "AP script",
         "author": "Valentín Blanco (https://github.com/valenbg1/)",
         "version": "1.0.0",
-        "description": "Runs an AP with DNS and DHCP capabilities.",
+        "description": "Runs an AP with DNS and DHCP capabilities. Supports impersonation attacks against 802.1X "
+                       "networks and also KARMA-style gratuitous probe responses.",
         "options": argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter),
-        "depends": {"daemon/dnsmasq", "daemon/hostapd-wpe"}
+        "depends": {"attack/deauth", "daemon/dnsmasq", "daemon/hostapd-wpe"}
     }
     META["options"].add_argument("-i", "--iface", help="AP mode capable WLAN interface", default="wlan0",
                                  metavar="INTERFACE")
@@ -33,6 +36,11 @@ class Module(BaseScript):
     META["options"].add_argument("-k", "--karma",
                                  help="respond to all directed probe requests (KARMA-style gratuitous probe responses)",
                                  action="store_true")
+    META["options"].add_argument("-d", "--deauth", help="perform a deauthentication attack to all clients connected to "
+                                                        "any access point that announce the same SSID (argument "
+                                                        "--ssid) before the AP is started. Requires these access "
+                                                        "points to previously be in the reconnaissance database (use "
+                                                        "the module discovery/recon).", action="store_true")
     META["options"].add_argument("--mac-acl",
                                  help="path to a MAC addresses whitelist. If specified, all the clients whose MAC "
                                       "address is not in this list will be rejected.",
@@ -55,6 +63,23 @@ class Module(BaseScript):
 
     def run(self, args, cmd):
         script_args = argparse.Namespace()
+
+        script_args.deauth_args_lst = []
+
+        if args.deauth:
+            with db_session:
+                try:
+                    for bss in ExtendedServiceSet[args.ssid].bssets:
+                        script_args.deauth_args_lst.append(to_args_str({
+                            "iface": args.iface,
+                            "bssid": bss.bssid,
+                            "channel": bss.channel
+                            # "client": "FF:FF:FF:FF:FF:FF"
+                            # "num-packets": 10
+                        }))
+                except:
+                    pass
+
         script_args.hostapd_wpe_args = to_args_str({
             "iface": args.iface,
             "channel": args.channel,
@@ -65,11 +90,13 @@ class Module(BaseScript):
             "karma": args.karma,
             "mac-acl": args.mac_acl
         })
+
         script_args.dnsmasq_args = to_args_str({
             "start-addr": args.dhcp_start_addr,
             "end-addr": args.dhcp_end_addr,
             "lease-time": args.dhcp_lease_time,
         })
+
         super().run(script_args, cmd)
 
         pyw.ifaddrset(pyw.getcard(args.iface), args.router_ip, args.netmask)

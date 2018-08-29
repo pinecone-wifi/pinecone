@@ -1,5 +1,4 @@
 - **TODO:**
-    * Previous deauth attack in AP script ("free Wi-Fi").
     * hostapd-wpe log file.
     * Comments in source code.
     * Autocompleting in CLI commands.
@@ -12,6 +11,7 @@
     * Include first_seen fields in DB.
     * Split script/attack/wpa_handshake functionality in another module.
     * DB transaction error in recon module.
+    * Test WEP authn methods.
 
 - **DOING:**
 
@@ -19,6 +19,7 @@
     * Recon specific WEP enc types (requires parsing of 802.11 data packets).
 
 - **DONE:**
+    * Previous deauth attack in AP script ("free Wi-Fi").
     * MAC ACL in daemon/hostapd-wpe.
     * Empty SSIDs with non zero length in recon module.
     * Handle exceptions when sniffing in recon module.
