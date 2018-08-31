@@ -2,7 +2,6 @@
     * Comments in source code.
     * Network graph report module (@rsrdesarrollo).
     ---------
-    * Save AP beacon in PCAP file in script/attack/wpa_handshake module.
     * Custom hosts in dnsmasq module.
     * Include last_seen field in clients in DB.
     * Include first_seen fields in DB.
@@ -17,6 +16,7 @@
     * Recon specific WEP enc types (requires parsing of 802.11 data packets).
 
 - **DONE:**
+    * Save AP beacon in PCAP file in script/attack/wpa_handshake module.
     * Improve attack/deauth module.
     * check_chset().
     * "Select BSS" function in database.py.

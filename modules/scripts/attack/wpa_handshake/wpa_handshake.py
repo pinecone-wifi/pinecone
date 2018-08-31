@@ -3,6 +3,7 @@ import argparse
 from pathlib2 import Path
 from pony.orm import *
 from scapy.all import *
+from scapy.layers.dot11 import Dot11, Dot11Beacon
 
 from pinecone.core.database import select_bss
 from pinecone.core.script import BaseScript
@@ -37,6 +38,8 @@ class Module(BaseScript):
 
     def __init__(self):
         self.handshakes_cache = None
+        self.complete_handshake = False
+        self.ap_beacon = None
         self.args = None
         self.cmd = None
 
@@ -62,7 +65,7 @@ class Module(BaseScript):
             interface = set_monitor_mode(args.iface)
             check_chset(interface, args.channel)
             args.all_clients = compare_macs(args.client, BROADCAST_MAC)
-            self.handshakes_cache = {}
+            self.clear_caches()
             self.args = args
             self.cmd = cmd
 
@@ -73,19 +76,12 @@ class Module(BaseScript):
                     "bssid": args.bssid,
                     "channel": args.channel,
                     "client": args.client
-                    # "num-packets": 10
+                    # "num-frames": 1
                 })
 
-                if args.all_clients:
-                    cmd.pfeedback(
-                        "[i] Deauthenticating all clients from AP {} on channel {}...".format(args.bssid, args.channel))
-                else:
-                    cmd.pfeedback(
-                        "[i] Deauthenticating client {} from AP {} on channel {}...".format(args.client, args.bssid,
-                                                                                            args.channel))
                 super().run(script_args, cmd)
             else:
-                cmd.pfeedback("[i] Disabled client deauthentication.")
+                cmd.pfeedback("[i] Disabled client(s) deauthentication.")
 
             if args.all_clients:
                 cmd.pfeedback(
@@ -95,52 +91,69 @@ class Module(BaseScript):
                 cmd.pfeedback(
                     "[i] Monitoring for {} secs on channel {} WPA handshakes between client {} and AP {}...".format(
                         args.sniff_time, args.channel, args.client, args.bssid))
-            sniff(iface=args.iface, prn=self.handle_eapol_packet, timeout=args.sniff_time, store=False)
+            sniff(iface=args.iface, prn=self.handle_packet, timeout=args.sniff_time, store=False,
+                  stop_filter=lambda x: self.complete_handshake)
+
+    def clear_caches(self) -> None:
+        self.handshakes_cache = {}
+        self.complete_handshake = False
+        self.ap_beacon = None
+
+    def handle_packet(self, packet: Packet) -> None:
+        try:
+            if not self.ap_beacon and packet.haslayer(Dot11Beacon) and compare_macs(packet[Dot11].addr3,
+                                                                                    self.args.bssid):
+                self.ap_beacon = packet
+            elif packet.haslayer(WPA_key):
+                self.handle_eapol_packet(packet)
+        except Exception as e:
+            self.cmd.perror("[!] Exception while handling packet: {}\n{}".format(e, packet.show(dump=True)))
 
     def handle_eapol_packet(self, packet: Packet) -> None:
-        if packet.haslayer(WPA_key):
-            dot11_addrs_info = get_dot11_addrs_info(packet)
-            dot11_ds_bits = dot11_addrs_info["ds_bits"]
+        dot11_addrs_info = get_dot11_addrs_info(packet)
+        dot11_ds_bits = dot11_addrs_info["ds_bits"]
 
-            if len(dot11_ds_bits) == 1:  # to-DS or from-DS
-                bssid = dot11_addrs_info["bssid"]
-                client_mac = dot11_addrs_info["sa"] if "to-DS" in dot11_ds_bits else dot11_addrs_info["da"]
+        if len(dot11_ds_bits) == 1:  # to-DS or from-DS
+            bssid = dot11_addrs_info["bssid"]
+            client_mac = dot11_addrs_info["sa"] if "to-DS" in dot11_ds_bits else dot11_addrs_info["da"]
 
-                if bssid == self.args.bssid and (self.args.all_clients or compare_macs(self.args.client, client_mac)):
-                    if client_mac not in self.handshakes_cache:
-                        self.handshakes_cache[client_mac] = [None, None, None, None]
+            if compare_macs(bssid, self.args.bssid) and (
+                    self.args.all_clients or compare_macs(self.args.client, client_mac)):
+                if client_mac not in self.handshakes_cache:
+                    self.handshakes_cache[client_mac] = [None, None, None, None]
 
-                    wpa_key_packet = packet[WPA_key]
+                wpa_key_packet = packet[WPA_key]
 
-                    if wpa_key_packet.sprintf("%key_info_type%") == "pairwise":
-                        key_info_flags = get_flags_set(wpa_key_packet.key_info_flags)
-                        frame_number = None
+                if wpa_key_packet.sprintf("%key_info_type%") == "pairwise":
+                    key_info_flags = get_flags_set(wpa_key_packet.key_info_flags)
+                    frame_number = None
 
-                        # Frame 1: not install, ACK, not MIC.
-                        if "install" not in key_info_flags and "ACK" in key_info_flags and "MIC" not in key_info_flags:
-                            frame_number = 0
-                        elif "install" not in key_info_flags and "ACK" not in key_info_flags and "MIC" in key_info_flags:
-                            # Frame 4: not install, not ACK, MIC, nonce == 0.
-                            if all(n == 0 for n in wpa_key_packet.nonce):
-                                frame_number = 3
-                            # Frame 2: not install, not ACK, MIC, nonce != 0.
-                            else:
-                                frame_number = 1
-                        # Frame 3: install, ACK, MIC.
-                        elif "install" in key_info_flags and "ACK" in key_info_flags and "MIC" in key_info_flags:
-                            frame_number = 2
+                    # Frame 1: not install, ACK, not MIC.
+                    if "install" not in key_info_flags and "ACK" in key_info_flags and "MIC" not in key_info_flags:
+                        frame_number = 0
+                    elif "install" not in key_info_flags and "ACK" not in key_info_flags and "MIC" in key_info_flags:
+                        # Frame 4: not install, not ACK, MIC, nonce == 0.
+                        if all(n == 0 for n in wpa_key_packet.nonce):
+                            frame_number = 3
+                        # Frame 2: not install, not ACK, MIC, nonce != 0.
+                        else:
+                            frame_number = 1
+                    # Frame 3: install, ACK, MIC.
+                    elif "install" in key_info_flags and "ACK" in key_info_flags and "MIC" in key_info_flags:
+                        frame_number = 2
 
-                        if frame_number is not None:
-                            self.cmd.pfeedback(
-                                "[i] Captured handshake frame #{} for client {}.".format(frame_number + 1, client_mac))
-                            self.handshakes_cache[client_mac][frame_number] = packet
+                    if frame_number is not None:
+                        self.cmd.pfeedback(
+                            "[i] Captured handshake frame #{} for client {}.".format(frame_number + 1, client_mac))
+                        self.handshakes_cache[client_mac][frame_number] = packet
 
-                        if all(p is not None for p in self.handshakes_cache[client_mac]):
-                            self.cmd.pfeedback(
-                                "[i] Captured complete WPA 4-way handshake for client {}.".format(client_mac))
+                    if all(p is not None for p in self.handshakes_cache[client_mac]):
+                        self.complete_handshake = True
+                        self.cmd.pfeedback(
+                            "[i] Captured complete WPA 4-way handshake for client {}.".format(client_mac))
 
-                            # TODO
-                            wrpcap("tmp/handshake.pcap", self.handshakes_cache[client_mac])
+                        # TODO
+                        wrpcap("tmp/handshake.pcap", [self.ap_beacon] + self.handshakes_cache[client_mac])
 
     def stop(self, cmd):
         pass
