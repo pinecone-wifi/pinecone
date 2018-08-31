@@ -1,3 +1,11 @@
+use daemon/hostapd-wpe
+run {{ hostapd_wpe_args }}
+back
+
+use daemon/dnsmasq
+run {{ dnsmasq_args }}
+back
+
 {% if deauth_args_lst %}
 use attack/deauth
 
@@ -7,11 +15,3 @@ run {{ deauth_args }}
 
 back
 {% endif %}
-
-use daemon/hostapd-wpe
-run {{ hostapd_wpe_args }}
-back
-
-use daemon/dnsmasq
-run {{ dnsmasq_args }}
-back

