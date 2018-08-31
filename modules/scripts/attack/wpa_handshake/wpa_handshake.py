@@ -55,9 +55,9 @@ class Module(BaseScript):
                 args.channel = bss.channel
 
         if args.bssid is None:
-            cmd.perror("BSSID is missing.")
+            cmd.perror("BSSID is missing, and couldn't be obtained from the recon db.")
         elif args.channel is None:
-            cmd.perror("Channel is missing.")
+            cmd.perror("Channel is missing, and couldn't be obtained from the recon db.")
         else:
             interface = set_monitor_mode(args.iface)
             check_chset(interface, args.channel)

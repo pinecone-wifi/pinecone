@@ -12,12 +12,12 @@
     * Better autocompleting in CLI commands.
 
 - **DOING:**
-    * Improve attack/deauth module.
 
 - **ON HOLD:**
     * Recon specific WEP enc types (requires parsing of 802.11 data packets).
 
 - **DONE:**
+    * Improve attack/deauth module.
     * check_chset().
     * "Select BSS" function in database.py.
     * Save command history.
