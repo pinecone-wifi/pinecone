@@ -1,24 +1,26 @@
 - **TODO:**
-    * hostapd-wpe log file.
     * Comments in source code.
-    * Autocompleting in CLI commands.
     * Network graph report module (@rsrdesarrollo).
+    
     ---------
-    * Save command history.
     * Save AP beacon in PCAP file in script/attack/wpa_handshake module.
     * Custom hosts in dnsmasq module.
     * Include last_seen field in clients in DB.
     * Include first_seen fields in DB.
     * Split script/attack/wpa_handshake functionality in another module.
-    * DB transaction error in recon module.
     * Test WEP authn methods.
+    * hostapd-wpe log file.
+    * Better autocompleting in CLI commands.
 
 - **DOING:**
+    * "Select BSS" function in database.py.
+    * Improve attack/deauth module.
 
 - **ON HOLD:**
     * Recon specific WEP enc types (requires parsing of 802.11 data packets).
 
 - **DONE:**
+    * Save command history.
     * Previous deauth attack in AP script ("free Wi-Fi").
     * MAC ACL in daemon/hostapd-wpe.
     * Empty SSIDs with non zero length in recon module.
