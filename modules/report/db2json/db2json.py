@@ -12,7 +12,7 @@ class Module(BaseModule):
     META = {
         "id": "report/db2json",
         "name": "Current recon database to JSON module",
-        "author": "Valentín Blanco (https://github.com/valenbg1/)",
+        "author": "Valentín Blanco (https://github.com/valenbg1)",
         "version": "1.0.0",
         "description": "Prints the current recon database to a JSON file.",
         "options": argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter),

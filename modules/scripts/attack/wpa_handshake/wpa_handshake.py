@@ -17,9 +17,11 @@ class Module(BaseScript):
     META = {
         "id": "scripts/attack/wpa_handshake",
         "name": "WPA handshake capture script",
-        "author": "Valentín Blanco (https://github.com/valenbg1/)",
+        "author": "Valentín Blanco (https://github.com/valenbg1)",
         "version": "1.0.0",
-        "description": "Captures WPA handshakes by deauthenticating clients and then sniffing for the handshake.",
+        "description": "Captures WPA handshakes by deauthenticating clients and then monitoring the handshake. If some "
+                       "required options for the attack (such as --bssid or --channel) are omitted, they are obtained, "
+                       "when possible, from the recon db (use the module discovery/recon to populate it).",
         "options": argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter),
         "depends": {"attack/deauth"}
     }

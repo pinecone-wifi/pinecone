@@ -19,13 +19,14 @@ class Module(BaseModule):
     META = {
         "id": "discovery/recon",
         "name": "802.11 networks reconnaissance module",
-        "author": "Valentín Blanco (https://github.com/valenbg1/)",
+        "author": "Valentín Blanco (https://github.com/valenbg1)",
         "version": "1.0.0",
-        "description": "Detects 802.11 APs and clients info and saves it to a database for further use.",
+        "description": "Detects 802.11 APs and clients info and saves it to the recon database for further use.",
         "options": argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter),
         "depends": {}
     }
-    META["options"].add_argument("-i", "--iface", help="monitor mode capable WLAN interface", default="wlan0")
+    META["options"].add_argument("-i", "--iface", help="monitor mode capable WLAN interface", default="wlan0",
+                                 metavar="INTERFACE")
 
     CHANNEL_HOPS = {
         "2.4G": (1, 6, 11, 14, 2, 7, 12, 3, 8, 13, 4, 9, 5, 10)
@@ -53,7 +54,6 @@ class Module(BaseModule):
     def run(self, args, cmd):
         self.cmd = cmd
         interface = set_monitor_mode(args.iface)
-        prev_sig_handler = signal.signal(signal.SIGINT, self.sig_int_handler)
 
         self.clear_caches()
         self.running = True
@@ -62,6 +62,10 @@ class Module(BaseModule):
             "iface": args.iface
         })
         sniff_thread.start()
+
+        prev_sig_handler = signal.signal(signal.SIGINT, self.sig_int_handler)
+
+        cmd.pfeedback("[i] Starting reconnaissance, press ctrl-c to stop...\n")
 
         while self.running:
             for channel in self.CHANNEL_HOPS["2.4G"]:
@@ -72,10 +76,10 @@ class Module(BaseModule):
                     self.iface_current_channel = channel
                     sleep(3)
                 except:
-                    continue
+                    pass
 
-        sniff_thread.join()
         signal.signal(signal.SIGINT, prev_sig_handler)
+        sniff_thread.join()
 
     def stop(self, cmd):
         pass

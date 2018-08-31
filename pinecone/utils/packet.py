@@ -34,7 +34,8 @@ WEP_AUTHN_TYPE_IDS = {
 BROADCAST_MAC = "ff:ff:ff:ff:ff:ff"
 
 
-# Edited, original source https://github.com/secdev/scapy/blob/1fc08e01f9d88c226e6a2132d6dec2a43eb660dd/scapy/contrib/wpa_eapol.py#L24
+# Edited, original source
+# https://github.com/secdev/scapy/blob/1fc08e01f9d88c226e6a2132d6dec2a43eb660dd/scapy/contrib/wpa_eapol.py#L24
 class WPA_key(Packet):
     name = "WPA_key"
     fields_desc = [ByteField("descriptor_type", 1),
@@ -73,7 +74,8 @@ class WPA_key(Packet):
 bind_layers(EAPOL, WPA_key, type=3)
 
 
-# Original source https://github.com/secdev/scapy/blob/1fc08e01f9d88c226e6a2132d6dec2a43eb660dd/scapy/layers/dot11.py#L501
+# Original source
+# https://github.com/secdev/scapy/blob/1fc08e01f9d88c226e6a2132d6dec2a43eb660dd/scapy/layers/dot11.py#L501
 class AKMSuite(Packet):
     name = "AKM suite"
     fields_desc = [
@@ -89,7 +91,8 @@ class AKMSuite(Packet):
         return "", s
 
 
-# Original source https://github.com/secdev/scapy/blob/1fc08e01f9d88c226e6a2132d6dec2a43eb660dd/scapy/layers/dot11.py#L483
+# Original source
+# https://github.com/secdev/scapy/blob/1fc08e01f9d88c226e6a2132d6dec2a43eb660dd/scapy/layers/dot11.py#L483
 class RSNCipherSuite(Packet):
     name = "Cipher suite"
     fields_desc = [
@@ -108,7 +111,8 @@ class RSNCipherSuite(Packet):
         return "", s
 
 
-# Original source https://github.com/secdev/scapy/blob/1fc08e01f9d88c226e6a2132d6dec2a43eb660dd/scapy/layers/dot11.py#L516
+# Original source
+# https://github.com/secdev/scapy/blob/1fc08e01f9d88c226e6a2132d6dec2a43eb660dd/scapy/layers/dot11.py#L516
 class PMKIDListPacket(Packet):
     name = "PMKIDs"
     fields_desc = [
@@ -125,7 +129,8 @@ class PMKIDListPacket(Packet):
         return "", s
 
 
-# Original source https://github.com/secdev/scapy/blob/1fc08e01f9d88c226e6a2132d6dec2a43eb660dd/scapy/layers/dot11.py#L532
+# Original source
+# https://github.com/secdev/scapy/blob/1fc08e01f9d88c226e6a2132d6dec2a43eb660dd/scapy/layers/dot11.py#L532
 class Dot11EltRSN(Dot11Elt):
     name = "RSN information"
     fields_desc = [
@@ -172,7 +177,8 @@ class Dot11EltRSN(Dot11Elt):
     ]
 
 
-# Edited, original source https://github.com/secdev/scapy/blob/1fc08e01f9d88c226e6a2132d6dec2a43eb660dd/scapy/layers/dot11.py#L578
+# Edited, original source
+# https://github.com/secdev/scapy/blob/1fc08e01f9d88c226e6a2132d6dec2a43eb660dd/scapy/layers/dot11.py#L578
 class Dot11EltMicrosoftWPA(Dot11Elt):
     name = "Microsoft WPA"
     fields_desc = [
@@ -295,7 +301,8 @@ def process_dot11elts(dot11elts: Dot11Elt) -> Dict[str, Any]:
         dot11elt_id = dot11elt.sprintf("%ID%")
 
         if dot11elts_info["ssid"] is None and dot11elt_id == "SSID" and dot11elt.len is not None:
-            if (dot11elt.len == 0 and dot11elt.info == b"") or (dot11elt.len > 0 and all(n == 0 for n in dot11elt.info)):
+            if (dot11elt.len == 0 and dot11elt.info == b"") or (
+                    dot11elt.len > 0 and all(n == 0 for n in dot11elt.info)):
                 dot11elts_info["ssid"] = ""
             elif dot11elt.len > 0:
                 try:
@@ -307,9 +314,9 @@ def process_dot11elts(dot11elts: Dot11Elt) -> Dict[str, Any]:
                 dot11elts_info["channel"] = dot11elt.info[0]
             except:
                 pass
-        elif ("WPA2" not in dot11elts_info["encryption_types"] and dot11elt_id == "RSNinfo") or (
-                "WPA" not in dot11elts_info[
-            "encryption_types"] and dot11elt_id == "vendor" and dot11elt.info.startswith(b"\x00\x50\xf2\x01\x01\x00")):
+        elif ("WPA2" not in dot11elts_info["encryption_types"] and dot11elt_id == "RSNinfo") or ("WPA" not in
+                dot11elts_info["encryption_types"] and dot11elt_id == "vendor" and
+                dot11elt.info.startswith(b"\x00\x50\xf2\x01\x01\x00")):
             sec_dot11elt_info = _process_security_dot11elt(dot11elt)
             dot11elts_info["encryption_types"].add(sec_dot11elt_info["encryption_type"])
             dot11elts_info["cipher_types"].update(sec_dot11elt_info["cipher_types"])

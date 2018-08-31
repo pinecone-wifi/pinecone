@@ -10,7 +10,7 @@ class Module(DaemonBaseModule):
     META = {
         "id": "daemon/hostapd-wpe",
         "name": "hostapd-wpe daemon handler module",
-        "author": "Valentín Blanco (https://github.com/valenbg1/)",
+        "author": "Valentín Blanco (https://github.com/valenbg1)",
         "version": "1.0.0",
         "description": "Manages a hostapd-wpe daemon, which provides access point and authentication servers "
                        "functionalities. Supports impersonation attacks against 802.1X networks and also KARMA-style "

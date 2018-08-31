@@ -13,7 +13,7 @@ class Module(DaemonBaseModule):
     META = {
         "id": "daemon/dnsmasq",
         "name": "Dnsmasq daemon handler module",
-        "author": "Valentín Blanco (https://github.com/valenbg1/)",
+        "author": "Valentín Blanco (https://github.com/valenbg1)",
         "version": "1.0.0",
         "description": "Manages a dnsmasq daemon server, which provides DNS and DHCP services.",
         "options": argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter),

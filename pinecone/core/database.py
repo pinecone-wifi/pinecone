@@ -31,9 +31,10 @@ class BasicServiceSet(db.Entity):
     def __str__(self):
         ess_info = str(self.ess) if self.ess is not None else ""
 
-        return "BSSID: {}, channel: {}, encryption types: ({}), cipher types: ({}), authn types: ({}), last seen: {}, ESS: ({}), hides SSID: {}".format(
-            self.bssid, self.channel, self.encryption_types, self.cipher_types, self.authn_types, self.last_seen,
-            ess_info, self.hides_ssid)
+        return "BSSID: {}, channel: {}, encryption types: ({}), cipher types: ({}), authn types: ({}), last seen: " \
+               "{}, ESS: ({}), hides SSID: {}".format(self.bssid, self.channel, self.encryption_types,
+                                                      self.cipher_types, self.authn_types, self.last_seen, ess_info,
+                                                      self.hides_ssid)
 
 
 class ExtendedServiceSet(db.Entity):

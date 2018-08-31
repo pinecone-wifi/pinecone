@@ -7,8 +7,8 @@ from pathlib2 import Path
 from pony.orm import *
 from pyric import pyw
 
-from pinecone.core.script import BaseScript
 from pinecone.core.database import ExtendedServiceSet
+from pinecone.core.script import BaseScript
 from pinecone.utils.template import to_args_str
 
 
@@ -16,7 +16,7 @@ class Module(BaseScript):
     META = {
         "id": "scripts/infrastructure/ap",
         "name": "AP script",
-        "author": "Valentín Blanco (https://github.com/valenbg1/)",
+        "author": "Valentín Blanco (https://github.com/valenbg1)",
         "version": "1.0.0",
         "description": "Runs an AP with DNS and DHCP capabilities. Supports impersonation attacks against 802.1X "
                        "networks and also KARMA-style gratuitous probe responses.",
@@ -40,15 +40,16 @@ class Module(BaseScript):
                                                         "to any access point that announce the same SSID (argument "
                                                         "--ssid) on the same channel (argument --channel) after the "
                                                         "rogue AP is started. Requires these APs to previously be in "
-                                                        "the recon db (use the module discovery/recon), and your WiFi "
-                                                        "card to support multiple interfaces. The deauth attack can be "
-                                                        "stopped using ctrl-c.", action="store_true")
+                                                        "the recon db (use the module discovery/recon to populate it), "
+                                                        "and your WiFi card to support multiple interfaces. The deauth "
+                                                        "attack can be stopped using ctrl-c.", action="store_true")
     META["options"].add_argument("--mac-acl",
                                  help="path to a MAC addresses whitelist. If specified, all the clients whose MAC "
                                       "address is not in this list will be rejected.",
                                  metavar="MAC_ACL_PATH")
     META["options"].add_argument("-o", "--out-iface",
-                                 help="output interface (no-LAN packets will be redirected there).", default="eth0")
+                                 help="output interface (no-LAN packets will be redirected there).", default="eth0",
+                                 metavar="OUTPUT_INTERFACE")
     META["options"].add_argument("-r", "--router-ip", help="router LAN IP", default="192.168.0.1")
     META["options"].add_argument("-n", "--netmask", help="network netmask", default="255.255.255.0")
     META["options"].add_argument("--dhcp-start-addr", help="DHCP start address", default="192.168.0.50")
@@ -88,7 +89,12 @@ class Module(BaseScript):
 
         if args.deauth:
             additional_mon_iface_name = "{}mon".format(args.iface)
+            cmd.pfeedback(
+                "[i] Creating additional monitor mode interface {} for the continuous deauth attack...".format(
+                    additional_mon_iface_name))
             additional_mon_iface = pyw.devadd(pyw.getcard(args.iface), additional_mon_iface_name, "monitor")
+            pyw.up(additional_mon_iface)
+            pyw.chset(additional_mon_iface, args.channel)
 
             with db_session:
                 try:
@@ -107,6 +113,8 @@ class Module(BaseScript):
 
         run(["sysctl", "-w", "net.ipv4.ip_forward=1"])
 
+        cmd.pfeedback(
+            "[i] Creating NAT rules in iptables for forwarding {} -> {}...".format(args.iface, args.out_iface))
         iptc.Table(iptc.Table.NAT).flush()
         nat_rule = iptc.Rule()
         nat_rule.src = str(ip_network("{}/{}".format(args.router_ip, args.netmask), strict=False))
@@ -114,14 +122,19 @@ class Module(BaseScript):
         nat_rule.target = nat_rule.create_target("MASQUERADE")
         iptc.Chain(iptc.Table(iptc.Table.NAT), "POSTROUTING").append_rule(nat_rule)
 
+        cmd.pfeedback("[i] Starting hostapd and dnsmasq...")
         super().run(script_args, cmd)
 
         if additional_mon_iface:
+            cmd.pfeedback("[i] Deleting the additional monitor mode interface created for the continuous deauth "
+                          "attack...")
             pyw.devdel(additional_mon_iface)
 
     def stop(self, cmd):
+        cmd.pfeedback("[i] Stopping hostapd and dnsmasq...")
         super().stop(cmd)
 
         run(["sysctl", "-w", "net.ipv4.ip_forward=0"])
 
+        cmd.pfeedback("[i] Flushing NAT table in iptables...")
         iptc.Table(iptc.Table.NAT).flush()
