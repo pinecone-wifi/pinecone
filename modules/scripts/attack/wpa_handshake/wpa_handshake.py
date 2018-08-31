@@ -2,6 +2,7 @@ import argparse
 
 from pathlib2 import Path
 from pony.orm import *
+from pyric import pyw
 from scapy.all import *
 from scapy.layers.dot11 import Dot11, Dot11Beacon
 
@@ -30,7 +31,8 @@ class Module(BaseScript):
     META["options"].add_argument("-b", "--bssid", help="BSSID of target AP")
     META["options"].add_argument("-s", "--ssid", help="SSID of target AP")
     META["options"].add_argument("-c", "--client", help="MAC of target client", default=BROADCAST_MAC)
-    META["options"].add_argument("--channel", help="channel of target AP", type=int)
+    META["options"].add_argument("--channel", help="channel of target AP, if 0 or negative the WLAN interface (option "
+                                                   "--iface) current channel will be used.", type=int)
     META["options"].add_argument("--no-deauth", help="do not deauth client(s) from AP", action="store_true")
     META["options"].add_argument("--sniff-time", help="time (in seconds) that the interface will be monitoring",
                                  default=10, type=int)
@@ -53,11 +55,13 @@ class Module(BaseScript):
 
             if bss:
                 if not ("WPA" in bss.encryption_types and "PSK" in bss.authn_types):
-                    cmd.perror("Selected AP encryption mode is not WPA[2]-PSK.")
-                    return
+                    cmd.perror("[!] Selected AP encryption mode is not WPA[2]-PSK.")
 
-                args.bssid = bss.bssid
-                args.channel = bss.channel
+                if not args.bssid:
+                    args.bssid = bss.bssid
+
+                if args.channel is None:
+                    args.channel = bss.channel
 
         if args.bssid is None:
             cmd.perror("BSSID is missing, and couldn't be obtained from the recon db.")
@@ -65,7 +69,12 @@ class Module(BaseScript):
             cmd.perror("Channel is missing, and couldn't be obtained from the recon db.")
         else:
             interface = set_monitor_mode(args.iface)
-            check_chset(interface, args.channel)
+
+            if args.channel > 0:
+                check_chset(interface, args.channel)
+            else:
+                args.channel = pyw.chget(interface)
+
             args.all_clients = compare_macs(args.client, BROADCAST_MAC)
             self.clear_caches()
             self.args = args
@@ -76,7 +85,7 @@ class Module(BaseScript):
                 script_args.deauth_args = to_args_str({
                     "iface": args.iface,
                     "bssid": args.bssid,
-                    "channel": args.channel,
+                    "channel": 0,
                     "client": args.client
                     # "num-frames": 1
                 })

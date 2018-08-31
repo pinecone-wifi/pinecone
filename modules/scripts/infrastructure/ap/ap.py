@@ -93,8 +93,6 @@ class Module(BaseScript):
                 "[i] Creating additional monitor mode interface {} for the continuous deauth attack...".format(
                     additional_mon_iface_name))
             additional_mon_iface = pyw.devadd(pyw.getcard(args.iface), additional_mon_iface_name, "monitor")
-            pyw.up(additional_mon_iface)
-            pyw.chset(additional_mon_iface, args.channel)
 
             with db_session:
                 try:
@@ -102,7 +100,7 @@ class Module(BaseScript):
                         script_args.deauth_args_lst.append(to_args_str({
                             "iface": additional_mon_iface_name,
                             "bssid": bss.bssid,
-                            "channel": args.channel,
+                            "channel": 0,
                             "num-frames": 0,
                             # "client": "FF:FF:FF:FF:FF:FF"
                         }))
