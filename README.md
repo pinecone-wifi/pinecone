@@ -15,7 +15,7 @@ After installing the necessary packages, you can install the Python packages req
 For starting Pinecone, use `python3 pinecone.py` in the project's root folder:
 ```
 root@kali:~/pinecone# python pinecone.py 
-[i] Database file: /root/pinecone/db/database.sqlite
+[i] Database file: ~/pinecone/db/database.sqlite
 pinecone > 
 ```
 
@@ -56,7 +56,7 @@ pcn module(discovery/recon) >
 Every module has options, that can be seen issuing `help run` or `run --help` when a module is activated. Most modules have default values for their options (check them before running):
 ```
 pcn module(discovery/recon) > help run
-usage: run [-h] [-i IFACE]
+usage: run [-h] [-i INTERFACE]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -67,20 +67,24 @@ optional arguments:
 When a module is activated, you can use the `run [options...]` command to start its functionality. The modules provide feedback of their execution state:
 ```
 pcn script(attack/wpa_handshake) > run -s TEST_SSID
-[i] Deauthenticating all clients from AP 00:11:22:33:44:55 on channel 1...
+[i] Sending 64 deauth frames to all clients from AP 00:11:22:33:44:55 on channel 1...
 [i] Monitoring for 10 secs on channel 1 for WPA handshakes between all clients and AP 00:11:22:33:44:55...
 ```
 
 If the module runs in background (for example, *scripts/infrastructure/ap*), you can stop it using the `stop` command when the module is running:
 ```
 pcn script(infrastructure/ap) > run
+net.ipv4.ip_forward = 1
+[i] Creating NAT rules in iptables for forwarding wlan0 -> eth0...
+[i] Starting hostapd-wpe and dnsmasq...
 Configuration file: ~/pinecone/tmp/hostapd-wpe.conf
-Using interface wlan0 with hwaddr 3c:6c:6a:5c:07:6b and ssid "PINECONEWIFI"
+Using interface wlan0 with hwaddr 00:11:22:33:44:55 and ssid "PINECONEWIFI"
 wlan0: interface state UNINITIALIZED->ENABLED
 wlan0: AP-ENABLED 
-net.ipv4.ip_forward = 1
 pcn script(infrastructure/ap) > stop
+[i] Stopping hostapd-wpe and dnsmasq...
 net.ipv4.ip_forward = 0
+[i] Flushing NAT table in iptables...
 ```
 
 When you are done using a module, you can deactivate it by using the `back` command. You can also activate another module issuing the `use` command again.
@@ -90,3 +94,5 @@ Shell commands may be executed with the command `shell` or the shortcut `!`:
 pinecone > !ls
 LICENSE  modules  module_template.py  pinecone  pinecone.py  README.md  requirements.txt  TODO.md
 ```
+
+Currently, Pinecone's reconnaissance SQLite database is stored in the directory *db/* inside the project's root folder. All the temporary files that Pinecone needs to use are stored in the directory *tmp/* also under the project's root folder.

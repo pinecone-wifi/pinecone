@@ -120,7 +120,7 @@ class Module(BaseScript):
         nat_rule.target = nat_rule.create_target("MASQUERADE")
         iptc.Chain(iptc.Table(iptc.Table.NAT), "POSTROUTING").append_rule(nat_rule)
 
-        cmd.pfeedback("[i] Starting hostapd and dnsmasq...")
+        cmd.pfeedback("[i] Starting hostapd-wpe and dnsmasq...")
         super().run(script_args, cmd)
 
         if additional_mon_iface:
@@ -129,7 +129,7 @@ class Module(BaseScript):
             pyw.devdel(additional_mon_iface)
 
     def stop(self, cmd):
-        cmd.pfeedback("[i] Stopping hostapd and dnsmasq...")
+        cmd.pfeedback("[i] Stopping hostapd-wpe and dnsmasq...")
         super().stop(cmd)
 
         run(["sysctl", "-w", "net.ipv4.ip_forward=0"])
