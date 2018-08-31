@@ -12,13 +12,13 @@
     * Better autocompleting in CLI commands.
 
 - **DOING:**
-    * check_chset().
     * Improve attack/deauth module.
 
 - **ON HOLD:**
     * Recon specific WEP enc types (requires parsing of 802.11 data packets).
 
 - **DONE:**
+    * check_chset().
     * "Select BSS" function in database.py.
     * Save command history.
     * Previous deauth attack in AP script ("free Wi-Fi").

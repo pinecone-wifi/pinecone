@@ -1,11 +1,10 @@
 import argparse
 
-from pyric import pyw
 from scapy.all import sendp
 from scapy.layers.dot11 import RadioTap, Dot11, Dot11Deauth
 
 from pinecone.core.module import BaseModule
-from pinecone.utils.interface import set_monitor_mode
+from pinecone.utils.interface import set_monitor_mode, check_chset
 from pinecone.utils.packet import BROADCAST_MAC
 
 
@@ -27,7 +26,7 @@ class Module(BaseModule):
 
     def run(self, args, cmd):
         interface = set_monitor_mode(args.iface)
-        pyw.chset(interface, args.channel)
+        check_chset(interface, args.channel)
 
         deauth_packet = RadioTap() / Dot11(addr1=args.client, addr2=args.bssid, addr3=args.bssid) / Dot11Deauth()
         i = args.num_packets if args.num_packets > 0 else -1

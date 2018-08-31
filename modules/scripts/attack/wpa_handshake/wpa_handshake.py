@@ -2,12 +2,11 @@ import argparse
 
 from pathlib2 import Path
 from pony.orm import *
-from pyric import pyw
 from scapy.all import *
 
 from pinecone.core.database import select_bss
 from pinecone.core.script import BaseScript
-from pinecone.utils.interface import set_monitor_mode
+from pinecone.utils.interface import set_monitor_mode, check_chset
 from pinecone.utils.packet import compare_macs, BROADCAST_MAC, get_dot11_addrs_info, WPA_key, \
     get_flags_set
 from pinecone.utils.template import to_args_str
@@ -61,7 +60,7 @@ class Module(BaseScript):
             cmd.perror("Channel is missing.")
         else:
             interface = set_monitor_mode(args.iface)
-            pyw.chset(interface, args.channel)
+            check_chset(interface, args.channel)
             args.all_clients = compare_macs(args.client, BROADCAST_MAC)
             self.handshakes_cache = {}
             self.args = args
