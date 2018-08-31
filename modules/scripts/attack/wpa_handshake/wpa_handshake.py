@@ -5,10 +5,10 @@ from pony.orm import *
 from pyric import pyw
 from scapy.all import *
 
-from pinecone.core.database import BasicServiceSet, ExtendedServiceSet, Client
+from pinecone.core.database import select_bss
 from pinecone.core.script import BaseScript
 from pinecone.utils.interface import set_monitor_mode
-from pinecone.utils.packet import is_multicast_mac, compare_macs, BROADCAST_MAC, get_dot11_addrs_info, WPA_key, \
+from pinecone.utils.packet import compare_macs, BROADCAST_MAC, get_dot11_addrs_info, WPA_key, \
     get_flags_set
 from pinecone.utils.template import to_args_str
 
@@ -23,7 +23,8 @@ class Module(BaseScript):
         "options": argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter),
         "depends": {"attack/deauth"}
     }
-    META["options"].add_argument("-i", "--iface", help="monitor mode capable WLAN interface.", default="wlan0")
+    META["options"].add_argument("-i", "--iface", help="monitor mode capable WLAN interface.", default="wlan0",
+                                 metavar="INTERFACE")
     META["options"].add_argument("-b", "--bssid", help="BSSID of target AP")
     META["options"].add_argument("-s", "--ssid", help="SSID of target AP")
     META["options"].add_argument("-c", "--client", help="MAC of target client", default=BROADCAST_MAC)
@@ -42,48 +43,26 @@ class Module(BaseScript):
 
         super().__init__()
 
-    @db_session
     def run(self, args, cmd):
-        bss = None
-        ess = None
-        client = None
+        with db_session:
+            bss = select_bss(cmd, args.ssid, args.bssid, args.client)
 
-        if args.ssid is not None:
-            ess = ExtendedServiceSet.get(ssid=args.ssid)
+            if bss:
+                if not ("WPA" in bss.encryption_types and "PSK" in bss.authn_types):
+                    cmd.perror("Selected AP encryption mode is not WPA[2]-PSK.")
+                    return
 
-        args.all_clients = compare_macs(args.client, BROADCAST_MAC)
-        if not is_multicast_mac(args.client):
-            client = Client.get(mac=args.client)
-
-        if args.bssid is None and ess is not None and not ess.bssets.is_empty():
-            if ess.bssets.count() == 1:
-                args.bssid = ess.bssets.select().first().bssid
-            else:
-                cmd.pfeedback('SSID "{}" is associated with multiple BSSIDs, select the appropiate:'.format(ess.ssid))
-                args.bssid = cmd.select(sorted(bss.bssid for bss in ess.bssets), "Option: ")
-
-        if args.bssid is None and client is not None and not client.connections.is_empty():
-            if client.connections.count() == 1:
-                args.bssid = client.connections.select().first().bss.bssid
-            else:
-                cmd.pfeedback("Client {} is associated with multiple BSSIDs, select the appropiate:".format(client.mac))
-                args.bssid = cmd.select(sorted(conn.bss.bssid for conn in client.connections), "Option: ")
-
-        if args.bssid is not None:
-            bss = BasicServiceSet.get(bssid=args.bssid)
-
-        if args.channel is None and bss is not None:
-            args.channel = bss.channel
+                args.bssid = bss.bssid
+                args.channel = bss.channel
 
         if args.bssid is None:
             cmd.perror("BSSID is missing.")
         elif args.channel is None:
             cmd.perror("Channel is missing.")
-        elif bss is not None and not ("WPA" in bss.encryption_types and "PSK" in bss.authn_types):
-            cmd.perror("AP encryption mode is not WPA[2]-PSK.")
         else:
             interface = set_monitor_mode(args.iface)
             pyw.chset(interface, args.channel)
+            args.all_clients = compare_macs(args.client, BROADCAST_MAC)
             self.handshakes_cache = {}
             self.args = args
             self.cmd = cmd

@@ -1,7 +1,6 @@
 - **TODO:**
     * Comments in source code.
     * Network graph report module (@rsrdesarrollo).
-    
     ---------
     * Save AP beacon in PCAP file in script/attack/wpa_handshake module.
     * Custom hosts in dnsmasq module.
@@ -13,13 +12,14 @@
     * Better autocompleting in CLI commands.
 
 - **DOING:**
-    * "Select BSS" function in database.py.
+    * check_chset().
     * Improve attack/deauth module.
 
 - **ON HOLD:**
     * Recon specific WEP enc types (requires parsing of 802.11 data packets).
 
 - **DONE:**
+    * "Select BSS" function in database.py.
     * Save command history.
     * Previous deauth attack in AP script ("free Wi-Fi").
     * MAC ACL in daemon/hostapd-wpe.
