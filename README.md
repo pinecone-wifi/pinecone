@@ -60,7 +60,7 @@ usage: run [-h] [-i INTERFACE]
 
 optional arguments:
   -h, --help            show this help message and exit
-  -i IFACE, --iface IFACE
+  -i INTERFACE, --iface INTERFACE
                         monitor mode capable WLAN interface (default: wlan0)
 ```
 
@@ -68,6 +68,8 @@ When a module is activated, you can use the `run [options...]` command to start 
 ```
 pcn script(attack/wpa_handshake) > run -s TEST_SSID
 [i] Sending 64 deauth frames to all clients from AP 00:11:22:33:44:55 on channel 1...
+................................................................
+Sent 64 packets.
 [i] Monitoring for 10 secs on channel 1 for WPA handshakes between all clients and AP 00:11:22:33:44:55...
 ```
 
