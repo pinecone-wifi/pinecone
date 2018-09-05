@@ -13,7 +13,7 @@
 - **DOING:**
 
 - **ON HOLD:**
-    * Recon specific WEP enc types (requires parsing of 802.11 data packets).
+    * Recon specific WEP enc types (requires parsing of 802.11 data frames).
 
 - **DONE:**
     * Save AP beacon in PCAP file in script/attack/wpa_handshake module.

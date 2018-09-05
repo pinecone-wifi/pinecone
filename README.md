@@ -4,7 +4,7 @@ Pinecone is a WLAN networks auditing tool, suitable for red team usage. It is ex
 This tool is designed for educational and research purposes only. Only use it with explicit permission.
 
 ## Installation
-For running Pinecone, you need a Debian-based OS (tested on Raspbian and Kali Linux). Pinecone has this requirements:
+For running Pinecone, you need a Debian-based operating system (it has been tested on Raspbian, Raspberry Pi Desktop and Kali Linux). Pinecone has this requirements:
 * **Python 3.5+**. Your distribution probably comes with Python3 installed, if not it can be installed using `apt-get install python3`.
 * **dnsmasq** (tested with version 2.76). Can be installed using `apt-get install dnsmasq`.
 * **hostapd-wpe** (tested with version 2.6). Can be installed using `apt-get install hostapd-wpe`. If your distribution repository does not have a hostapd-wpe package, you can either try to install it using a [Kali Linux repository pre-compiled package](https://http.kali.org/pool/main/h/hostapd-wpe), or [compile it from source](https://github.com/aircrack-ng/aircrack-ng/tree/master/patches/wpe/hostapd-wpe).
@@ -12,7 +12,7 @@ For running Pinecone, you need a Debian-based OS (tested on Raspbian and Kali Li
 After installing the necessary packages, you can install the Python packages requirements for Pinecone using `pip3 install -r requirements.txt` in the project's root folder.
 
 ## Usage
-For starting Pinecone, use `python3 pinecone.py` in the project's root folder:
+For starting Pinecone, use `python3 pinecone.py` from within the project's root folder:
 ```
 root@kali:~/pinecone# python pinecone.py 
 [i] Database file: ~/pinecone/db/database.sqlite
@@ -70,7 +70,7 @@ pcn script(attack/wpa_handshake) > run -s TEST_SSID
 [i] Sending 64 deauth frames to all clients from AP 00:11:22:33:44:55 on channel 1...
 ................................................................
 Sent 64 packets.
-[i] Monitoring for 10 secs on channel 1 for WPA handshakes between all clients and AP 00:11:22:33:44:55...
+[i] Monitoring for 10 secs on channel 1 WPA handshakes between all clients and AP 00:11:22:33:44:55...
 ```
 
 If the module runs in background (for example, *scripts/infrastructure/ap*), you can stop it using the `stop` command when the module is running:

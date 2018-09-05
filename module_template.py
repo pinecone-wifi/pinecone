@@ -8,7 +8,7 @@ from pinecone.core.module import BaseModule
 class Module(BaseModule):
     """
     This module serves as an template from which a real module can be built. The name of the class should be 'Module',
-    and the class should extends from any of the base abstract classes provided in the pinecone.core.module or
+    and the class should extend from any of the base abstract classes provided in the pinecone.core.module or
     pinecone.core.script Python's modules. For a working example look any real module, like attack/deauth.
     """
 
@@ -19,7 +19,7 @@ class Module(BaseModule):
         # Module's short name.
         "name": "Pinecone module template",
         # Module's author.
-        "author": "Valentín Blanco (https://github.com/valenbg1/)",
+        "author": "Valentín Blanco (https://github.com/valenbg1)",
         # Module's version.
         "version": "1.0.0",
         # Module's long description.
