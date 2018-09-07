@@ -1,18 +1,18 @@
 # Pinecone
-Pinecone is a WLAN networks auditing tool, suitable for red team usage. It is extensible via modules, and it's designed to be run in Debian-based operating systems. Pinecone is specially oriented to be used with a Raspberry Pi, as a portable wireless auditing box.
+Pinecone is a WLAN networks auditing tool, suitable for red team usage. It is extensible via modules, and it is designed to be run in Debian-based operating systems. Pinecone is specially oriented to be used with a Raspberry Pi, as a portable wireless auditing box.
 
 This tool is designed for educational and research purposes only. Only use it with explicit permission.
 
 ## Installation
-For running Pinecone, you need a Debian-based operating system (it has been tested on Raspbian, Raspberry Pi Desktop and Kali Linux). Pinecone has this requirements:
-* **Python 3.5+**. Your distribution probably comes with Python3 installed, if not it can be installed using `apt-get install python3`.
+For running Pinecone, you need a Debian-based operating system (it has been tested on Raspbian, Raspberry Pi Desktop and Kali Linux). Pinecone has the following requirements:
+* **Python 3.5+**. Your distribution probably comes with Python3 already installed, if not it can be installed using `apt-get install python3`.
 * **dnsmasq** (tested with version 2.76). Can be installed using `apt-get install dnsmasq`.
-* **hostapd-wpe** (tested with version 2.6). Can be installed using `apt-get install hostapd-wpe`. If your distribution repository does not have a hostapd-wpe package, you can either try to install it using a [Kali Linux repository pre-compiled package](https://http.kali.org/pool/main/h/hostapd-wpe), or [compile it from source](https://github.com/aircrack-ng/aircrack-ng/tree/master/patches/wpe/hostapd-wpe).
+* **hostapd-wpe** (tested with version 2.6). Can be installed using `apt-get install hostapd-wpe`. If your distribution repository does not have a hostapd-wpe package, you can either try to install it using a [Kali Linux repository pre-compiled package](https://http.kali.org/pool/main/h/hostapd-wpe), or [compile it from its source code](https://github.com/aircrack-ng/aircrack-ng/tree/master/patches/wpe/hostapd-wpe).
 
-After installing the necessary packages, you can install the Python packages requirements for Pinecone using `pip3 install -r requirements.txt` in the project's root folder.
+After installing the necessary packages, you can install the Python packages requirements for Pinecone using `pip3 install -r requirements.txt` in the project root folder.
 
 ## Usage
-For starting Pinecone, use `python3 pinecone.py` from within the project's root folder:
+For starting Pinecone, execute `python3 pinecone.py` from within the project root folder:
 ```
 root@kali:~/pinecone# python pinecone.py 
 [i] Database file: ~/pinecone/db/database.sqlite
@@ -44,7 +44,7 @@ optional arguments:
   -h, --help  show this help message and exit
 ```
 
-Use the command `use 'moduleID'` to activate a Pinecone module. You can use tab auto-completion to see the list of current loaded modules:
+Use the command `use 'moduleID'` to activate a Pinecone module. You can use Tab auto-completion to see the list of current loaded modules:
 ```
 pinecone > use 
 attack/deauth     daemon/hostapd-wpe    report/db2json                  scripts/infrastructure/ap  
@@ -53,7 +53,7 @@ pinecone > use discovery/recon
 pcn module(discovery/recon) > 
 ```
 
-Every module has options, that can be seen issuing `help run` or `run --help` when a module is activated. Most modules have default values for their options (check them before running):
+Every module has options, that can be seen typing `help run` or `run --help` when a module is activated. Most modules have default values for their options (check them before running):
 ```
 pcn module(discovery/recon) > help run
 usage: run [-h] [-i INTERFACE]
@@ -91,10 +91,10 @@ net.ipv4.ip_forward = 0
 
 When you are done using a module, you can deactivate it by using the `back` command. You can also activate another module issuing the `use` command again.
 
-Shell commands may be executed with the command `shell` or the shortcut `!`:
+Shell commands may be executed with the command `shell` or the `!` shortcut:
 ```
 pinecone > !ls
 LICENSE  modules  module_template.py  pinecone  pinecone.py  README.md  requirements.txt  TODO.md
 ```
 
-Currently, Pinecone's reconnaissance SQLite database is stored in the directory *db/* inside the project's root folder. All the temporary files that Pinecone needs to use are stored in the directory *tmp/* also under the project's root folder.
+Currently, Pinecone reconnaissance SQLite database is stored in the *db/* directory inside the project root folder. All the temporary files that Pinecone needs to use are stored in the *tmp/* directory also under the project root folder.

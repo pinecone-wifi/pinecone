@@ -9,7 +9,7 @@ class Module(BaseModule):
     """
     This module serves as an template from which a real module can be built. The name of the class should be 'Module',
     and the class should extend from any of the base abstract classes provided in the pinecone.core.module or
-    pinecone.core.script Python's modules. For a working example look any real module, like attack/deauth.
+    pinecone.core.script Python's modules. For a working example look any real module, like the 'attack/deauth' one.
     """
 
     # Module's meta-information.
