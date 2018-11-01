@@ -16,6 +16,9 @@ db = Database()
 
 
 class BasicServiceSet(db.Entity):
+    """BSS model class:
+        Represents an Access Point, normally identified by a BSSID (which is a MAC Address)
+    """
     bssid = PrimaryKey(str, max_len=18)
     channel = Optional(int)
     encryption_types = Optional(str)
@@ -38,6 +41,9 @@ class BasicServiceSet(db.Entity):
 
 
 class ExtendedServiceSet(db.Entity):
+    """ESS model class:
+        Represents a set of BSS group by the same network name (SSID)
+    """
     ssid = PrimaryKey(str, max_len=32)
     bssets = Set(BasicServiceSet)
     probes_recvd = Set("ProbeReq")
@@ -47,6 +53,9 @@ class ExtendedServiceSet(db.Entity):
 
 
 class Connection(db.Entity):
+    """Connection model class:
+        Represents the presence of an stabilised relationship between a Client and a BSS (AP)
+    """
     client = Required("Client")
     bss = Required(BasicServiceSet)
     last_seen = Required(datetime)
@@ -58,6 +67,9 @@ class Connection(db.Entity):
 
 
 class ProbeReq(db.Entity):
+    """Probe Request model class:
+        Represents the presence of a Probe Request frame from an specific client
+    """
     client = Required("Client")
     ess = Required(ExtendedServiceSet)
     last_seen = Required(datetime)
@@ -69,6 +81,9 @@ class ProbeReq(db.Entity):
 
 
 class Client(db.Entity):
+    """Client model class:
+        Represents any WiFi client
+    """
     mac = PrimaryKey(str, max_len=18)
     probe_reqs = Set(ProbeReq)
     connections = Set(Connection)
