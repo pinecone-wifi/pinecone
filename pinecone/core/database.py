@@ -1,11 +1,8 @@
 import sys
 from datetime import datetime
-from typing import Optional as OptionalType
 
 from pathlib2 import Path
 from pony.orm import *
-
-from pinecone.core.main import Pinecone
 
 ENCRYPTION_TYPES = {"OPN", "WEP", "WPA", "WPA2"}
 CIPHER_TYPES = {"WEP", "WEP-40", "TKIP", "WRAP", "CCMP-128", "WEP-104", "CMAC", "GCMP-128", "GCMP-256", "CCMP-256",
@@ -90,33 +87,6 @@ class Client(db.Entity):
 
     def __str__(self):
         return "MAC: {}".format(self.mac)
-
-
-@db_session
-def select_bss(cmd: Pinecone, ssid: OptionalType[str] = None, bssid: OptionalType[str] = None,
-               client_mac: OptionalType[str] = None) -> OptionalType[Client]:
-    if bssid:
-        return BasicServiceSet.get(bssid=bssid)
-
-    ess = ExtendedServiceSet.get(ssid=ssid) if ssid else None
-    client = Client.get(mac=client_mac) if client_mac else None
-
-    if ess and not ess.bssets.is_empty():
-        if ess.bssets.count() == 1:
-            bssid = ess.bssets.select().first().bssid
-        else:
-            cmd.pfeedback('SSID "{}" is associated with multiple BSSIDs, select the appropiate:'.format(ssid))
-            bssid = cmd.select(sorted(bss.bssid for bss in ess.bssets), "Option: ")
-
-    if not bssid and client and not client.connections.is_empty():
-        if client.connections.count() == 1:
-            bssid = client.connections.select().first().bss.bssid
-        else:
-            cmd.pfeedback("Client {} is associated with multiple BSSIDs, select the appropiate:".format(client_mac))
-            bssid = cmd.select(sorted(conn.bss.bssid for conn in client.connections), "Option: ")
-
-    if bssid:
-        return BasicServiceSet.get(bssid=bssid)
 
 
 DB_PATH = str(Path(sys.path[0], "db", "database.sqlite").resolve())

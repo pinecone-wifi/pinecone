@@ -7,7 +7,6 @@ from pyric import pyw
 from scapy.all import sendp
 from scapy.layers.dot11 import RadioTap, Dot11, Dot11Deauth
 
-from pinecone.core.database import select_bss
 from pinecone.core.module import BaseModule
 from pinecone.utils.interface import set_monitor_mode, check_chset
 from pinecone.utils.packet import BROADCAST_MAC, compare_macs
@@ -49,7 +48,7 @@ class Module(BaseModule):
         self.cmd = cmd
 
         with db_session:
-            bss = select_bss(cmd, args.ssid, args.bssid, args.client)
+            bss = cmd.select_bss(cmd, args.ssid, args.bssid, args.client)
 
             if bss:
                 if not args.bssid:
