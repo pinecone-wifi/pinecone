@@ -6,6 +6,7 @@ from time import sleep
 
 from pony.orm import *
 from pyric import pyw
+from pyric.pyw import Card
 from scapy.all import sniff, Packet
 from scapy.layers.dot11 import Dot11, Dot11Elt, Dot11ProbeReq, Dot11Beacon, Dot11Auth
 
@@ -25,8 +26,20 @@ class Module(BaseModule):
         "options": argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter),
         "depends": {}
     }
-    META["options"].add_argument("-i", "--iface", help="monitor mode capable WLAN interface", default="wlan0",
-                                 metavar="INTERFACE")
+    META["options"].add_argument(
+        "-i", "--iface",
+        help="monitor mode capable WLAN interface",
+        default="wlan0",
+        required=False,
+        metavar="INTERFACE"
+    )
+    META["options"].add_argument(
+        "-c", "--channel",
+        help="fix interface to specify channel",
+        required=False,
+        type=int,
+        metavar="CHANNEL"
+    )
 
     CHANNEL_HOPS = {
         "2.4G": (1, 6, 11, 14, 2, 7, 12, 3, 8, 13, 4, 9, 5, 10)
@@ -51,6 +64,21 @@ class Module(BaseModule):
             self.cmd.perror("[!] Exception while sniffing: {}".format(e))
             self.running = False
 
+    def channel_hopping(self, interface: Card) -> None:
+        while self.running:
+            for channel in self.CHANNEL_HOPS["2.4G"]:
+                if not self.running: break
+
+                try:
+                    self._hop_to_channel(interface, channel)
+                    sleep(3)
+                except:
+                    pass
+
+    def _hop_to_channel(self, interface: Card, channel: int) -> None:
+        pyw.chset(interface, channel)
+        self.iface_current_channel = channel
+
     def run(self, args, cmd):
         self.cmd = cmd
         interface = set_monitor_mode(args.iface)
@@ -58,28 +86,30 @@ class Module(BaseModule):
         self.clear_caches()
         self.running = True
 
+        join_to = []
         sniff_thread = Thread(target=self.sniff, kwargs={
             "iface": args.iface
         })
         sniff_thread.start()
+        join_to.append(sniff_thread)
+
+        if args.channel is None:
+            hopping_thread = Thread(target=self.channel_hopping, kwargs={
+                "iface": interface
+            })
+            hopping_thread.start()
+            join_to.append(hopping_thread)
+        else:
+            self._hop_to_channel(interface, args.channel)
 
         prev_sig_handler = signal.signal(signal.SIGINT, self.sig_int_handler)
 
         cmd.pfeedback("[i] Starting reconnaissance, press ctrl-c to stop...\n")
 
-        while self.running:
-            for channel in self.CHANNEL_HOPS["2.4G"]:
-                if not self.running: break
-
-                try:
-                    pyw.chset(interface, channel)
-                    self.iface_current_channel = channel
-                    sleep(3)
-                except:
-                    pass
+        for th in join_to:
+            th.join()
 
         signal.signal(signal.SIGINT, prev_sig_handler)
-        sniff_thread.join()
 
     def stop(self, cmd):
         pass
@@ -223,12 +253,14 @@ class Module(BaseModule):
 
             ssid = "\"{}\"".format(ssid) if ssid else "<empty>"
             self.cmd.pfeedback(
-                "[i] Detected AP (SSID: {}, BSSID: {}, ch: {}, enc: ({}), cipher: ({}), authn: ({})).".format(ssid,
-                                                                                                              bss.bssid,
-                                                                                                              bss.channel,
-                                                                                                              bss.encryption_types,
-                                                                                                              bss.cipher_types,
-                                                                                                              bss.authn_types))
+                "[i] Detected AP (SSID: {}, BSSID: {}, ch: {}, enc: ({}), cipher: ({}), authn: ({})).".format(
+                    ssid,
+                    bss.bssid,
+                    bss.channel,
+                    bss.encryption_types,
+                    bss.cipher_types,
+                    bss.authn_types)
+            )
 
     @db_session
     def handle_packet(self, packet: Packet) -> None:
