@@ -9,6 +9,7 @@ from pyric import pyw
 from pyric.pyw import Card
 from scapy.all import sniff, Packet
 from scapy.layers.dot11 import Dot11, Dot11Elt, Dot11ProbeReq, Dot11Beacon, Dot11Auth
+from scapy.utils import rdpcap
 
 from pinecone.core.database import Client, ExtendedServiceSet, ProbeReq, BasicServiceSet, Connection
 from pinecone.core.module import BaseModule
@@ -39,6 +40,13 @@ class Module(BaseModule):
         required=False,
         type=int,
         metavar="CHANNEL"
+    )
+    META["options"].add_argument(
+        "-r", "--read",
+        dest="input_file",
+        help="read a pcap file instead of use interface",
+        required=False,
+        metavar="INPUT_FILE"
     )
 
     CHANNEL_HOPS = {
@@ -75,41 +83,16 @@ class Module(BaseModule):
                 except:
                     pass
 
-    def _hop_to_channel(self, interface: Card, channel: int) -> None:
-        pyw.chset(interface, channel)
-        self.iface_current_channel = channel
-
     def run(self, args, cmd):
         self.cmd = cmd
-        interface = set_monitor_mode(args.iface)
 
         self.clear_caches()
         self.running = True
 
-        join_to = []
-        sniff_thread = Thread(target=self.sniff, kwargs={
-            "iface": args.iface
-        })
-        sniff_thread.start()
-        join_to.append(sniff_thread)
-
-        if args.channel is None:
-            hopping_thread = Thread(target=self.channel_hopping, kwargs={
-                "iface": interface
-            })
-            hopping_thread.start()
-            join_to.append(hopping_thread)
+        if args.input_file is not None:
+            self._run_on_pcap(args)
         else:
-            self._hop_to_channel(interface, args.channel)
-
-        prev_sig_handler = signal.signal(signal.SIGINT, self.sig_int_handler)
-
-        cmd.pfeedback("[i] Starting reconnaissance, press ctrl-c to stop...\n")
-
-        for th in join_to:
-            th.join()
-
-        signal.signal(signal.SIGINT, prev_sig_handler)
+            self._run_on_interface(args)
 
     def stop(self, cmd):
         pass
@@ -276,3 +259,40 @@ class Module(BaseModule):
                     self.handle_authn_res(packet)
         except Exception as e:
             self.cmd.perror("[!] Exception while handling packet: {}\n{}".format(e, packet.show(dump=True)))
+
+    def _hop_to_channel(self, interface: Card, channel: int) -> None:
+        pyw.chset(interface, channel)
+        self.iface_current_channel = channel
+
+    def _run_on_interface(self, args):
+        interface = set_monitor_mode(args.iface)
+
+        join_to = []
+        sniff_thread = Thread(target=self.sniff, kwargs={
+            "iface": args.iface
+        })
+        sniff_thread.start()
+        join_to.append(sniff_thread)
+
+        if args.channel is None:
+            hopping_thread = Thread(target=self.channel_hopping, kwargs={
+                "iface": interface
+            })
+            hopping_thread.start()
+            join_to.append(hopping_thread)
+        else:
+            self._hop_to_channel(interface, args.channel)
+
+        prev_sig_handler = signal.signal(signal.SIGINT, self.sig_int_handler)
+
+        self.cmd.pfeedback("[i] Starting reconnaissance, press ctrl-c to stop...\n")
+
+        for th in join_to:
+            th.join()
+
+        signal.signal(signal.SIGINT, prev_sig_handler)
+
+    def _run_on_pcap(self, args):
+        packets = rdpcap(args.input_file)
+        for packet in packets:
+            self.handle_packet(packet)
