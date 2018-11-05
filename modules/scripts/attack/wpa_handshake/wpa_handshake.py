@@ -50,7 +50,7 @@ class Module(BaseScript):
 
     def run(self, args, cmd):
         with db_session:
-            bss = cmd.select_bss(cmd, args.ssid, args.bssid, args.client)
+            bss = cmd.select_bss(args.ssid, args.bssid, args.client)
 
             if bss:
                 if not ("WPA" in bss.encryption_types and "PSK" in bss.authn_types):

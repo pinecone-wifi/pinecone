@@ -48,7 +48,7 @@ class Module(BaseModule):
         self.cmd = cmd
 
         with db_session:
-            bss = cmd.select_bss(cmd, args.ssid, args.bssid, args.client)
+            bss = cmd.select_bss(args.ssid, args.bssid, args.client)
 
             if bss:
                 if not args.bssid:
