@@ -5,7 +5,6 @@ from threading import Thread
 from time import sleep
 
 from pony.orm import *
-from pyric import pyw
 from pyric.pyw import Card
 from scapy.all import sniff, Packet
 from scapy.layers.dot11 import Dot11, Dot11Elt, Dot11ProbeReq, Dot11Beacon, Dot11Auth
@@ -13,7 +12,7 @@ from scapy.utils import rdpcap
 
 from pinecone.core.database import Client, ExtendedServiceSet, ProbeReq, BasicServiceSet, Connection
 from pinecone.core.module import BaseModule
-from pinecone.utils.interface import set_monitor_mode
+from pinecone.utils.interface import set_monitor_mode, check_chset
 from pinecone.utils.packet import is_multicast_mac, process_dot11elts, get_dot11_addrs_info, WEP_AUTHN_TYPE_IDS
 
 
@@ -22,7 +21,7 @@ class Module(BaseModule):
         "id": "discovery/recon",
         "name": "802.11 networks reconnaissance module",
         "author": "Valentín Blanco (https://github.com/valenbg1)",
-        "version": "1.0.0",
+        "version": "1.1.0",
         "description": "Detects 802.11 APs and clients info and saves it to the recon database for further use.",
         "options": argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter),
         "depends": {}
@@ -261,7 +260,7 @@ class Module(BaseModule):
             self.cmd.perror("[!] Exception while handling packet: {}\n{}".format(e, packet.show(dump=True)))
 
     def _hop_to_channel(self, interface: Card, channel: int) -> None:
-        pyw.chset(interface, channel)
+        check_chset(interface, channel)
         self.iface_current_channel = channel
 
     def _run_on_interface(self, args):
@@ -281,7 +280,7 @@ class Module(BaseModule):
             hopping_thread.start()
             join_to.append(hopping_thread)
         else:
-            self._hop_to_channel(interface, args.channel)
+            check_chset(interface, args.channel)
 
         prev_sig_handler = signal.signal(signal.SIGINT, self.sig_int_handler)
 
