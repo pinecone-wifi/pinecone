@@ -276,7 +276,7 @@ class Module(BaseModule):
 
         if args.channel is None:
             hopping_thread = Thread(target=self.channel_hopping, kwargs={
-                "iface": interface
+                "interface": interface
             })
             hopping_thread.start()
             join_to.append(hopping_thread)
