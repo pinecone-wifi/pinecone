@@ -12,6 +12,15 @@ AUTHN_TYPES = {"OPN", "SKA", "PSK", "MGT"}
 db = Database()
 
 
+def to_dict(entity: db.Entity):
+    ret = dict()
+    for attr in entity._attrs_:
+        if not attr.is_collection and attr.is_basic:
+            ret[attr.name] = getattr(entity, attr.name, None)
+
+    return ret
+
+
 class BasicServiceSet(db.Entity):
     """BSS model class:
         Represents an Access Point, normally identified by a BSSID (which is a MAC Address)
