@@ -17,6 +17,24 @@ from pinecone.utils.packet import is_multicast_mac, process_dot11elts, get_dot11
 
 
 class Module(BaseModule):
+    # ref: https://github.com/aircrack-ng/aircrack-ng/blob/master/src/airodump-ng.h#L141
+    CHANNEL_HOPS = {
+        "2.4G": (1, 7, 13, 2, 8, 3, 14, 9, 4, 10, 5, 11, 6, 12),
+        "5G": (
+            36, 38, 40, 42, 44, 46, 48, 50, 52, 54, 56, 58,
+            60, 62, 64, 100, 102, 104, 106, 108, 110, 112, 114, 116,
+            118, 120, 122, 124, 126, 128, 132, 134, 136, 138, 140, 142,
+            144, 149, 151, 153, 155, 157, 159, 161, 165, 169, 173
+        ),
+        "mix": (
+            1, 7, 13, 2, 8, 3, 14, 9, 4, 10, 5, 11, 6,
+            12, 36, 38, 40, 42, 44, 46, 48, 50, 52, 54, 56, 58,
+            60, 62, 64, 100, 102, 104, 106, 108, 110, 112, 114, 116, 118,
+            120, 122, 124, 126, 128, 132, 134, 136, 138, 140, 142, 144, 149,
+            151, 153, 155, 157, 159, 161, 165, 169, 173
+        )
+    }
+
     META = {
         "id": "discovery/recon",
         "name": "802.11 networks reconnaissance module",
@@ -47,10 +65,13 @@ class Module(BaseModule):
         required=False,
         metavar="INPUT_FILE"
     )
-
-    CHANNEL_HOPS = {
-        "2.4G": (1, 6, 11, 14, 2, 7, 12, 3, 8, 13, 4, 9, 5, 10)
-    }
+    META["options"].add_argument(
+        "-b", "--band",
+        help="Scan on specific band. Use 'mix' for all bands",
+        default="2.4G",
+        choices=CHANNEL_HOPS.keys(),
+        metavar="<{}>".format("|".join(CHANNEL_HOPS.keys()))
+    )
 
     def __init__(self):
         self.bssids_cache = None
@@ -71,14 +92,15 @@ class Module(BaseModule):
             self.cmd.perror("[!] Exception while sniffing: {}".format(e))
             self.running = False
 
-    def channel_hopping(self, interface: Card) -> None:
+    def channel_hopping(self, interface: Card, band: str) -> None:
         while self.running:
-            for channel in self.CHANNEL_HOPS["2.4G"]:
+            for channel in self.CHANNEL_HOPS[band]:
                 if not self.running: break
 
                 try:
                     self._hop_to_channel(interface, channel)
-                    sleep(3)
+                    # ref: https://github.com/aircrack-ng/aircrack-ng/blob/master/src/airodump-ng.h#L40
+                    sleep(0.250)
                 except:
                     pass
 
@@ -275,7 +297,8 @@ class Module(BaseModule):
 
         if args.channel is None:
             hopping_thread = Thread(target=self.channel_hopping, kwargs={
-                "interface": interface
+                "interface": interface,
+                "band": args.band
             })
             hopping_thread.start()
             join_to.append(hopping_thread)
