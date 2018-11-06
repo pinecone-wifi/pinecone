@@ -6,6 +6,9 @@ import sys
 import cmd2
 from cmd2 import argparse_completer
 from pathlib2 import Path
+from typing import Optional
+
+from pinecone.core.database import Client, db_session, BasicServiceSet, ExtendedServiceSet
 
 TMP_FOLDER_PATH = Path(sys.path[0], "tmp").resolve()  # type: Path
 
@@ -69,3 +72,29 @@ class Pinecone(cmd2.Cmd):
     def do_back(self, args: argparse.Namespace = None) -> None:
         type(self).do_run = type(self)._do_run
         self.prompt = self.DEFAULT_PROMPT
+
+    @db_session
+    def select_bss(self, ssid: Optional[str] = None, bssid: Optional[str] = None,
+                   client_mac: Optional[str] = None) -> Optional[Client]:
+        if bssid:
+            return BasicServiceSet.get(bssid=bssid)
+
+        ess = ExtendedServiceSet.get(ssid=ssid) if ssid else None
+        client = Client.get(mac=client_mac) if client_mac else None
+
+        if ess and not ess.bssets.is_empty():
+            if ess.bssets.count() == 1:
+                bssid = ess.bssets.select().first().bssid
+            else:
+                self.pfeedback('SSID "{}" is associated with multiple BSSIDs, select the appropiate:'.format(ssid))
+                bssid = self.select(sorted(bss.bssid for bss in ess.bssets), "Option: ")
+
+        if not bssid and client and not client.connections.is_empty():
+            if client.connections.count() == 1:
+                bssid = client.connections.select().first().bss.bssid
+            else:
+                self.pfeedback("Client {} is associated with multiple BSSIDs, select the appropiate:".format(client_mac))
+                bssid = self.select(sorted(conn.bss.bssid for conn in client.connections), "Option: ")
+
+        if bssid:
+            return BasicServiceSet.get(bssid=bssid)

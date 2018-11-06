@@ -6,7 +6,6 @@ from pyric import pyw
 from scapy.all import *
 from scapy.layers.dot11 import Dot11, Dot11Beacon
 
-from pinecone.core.database import select_bss
 from pinecone.core.script import BaseScript
 from pinecone.utils.interface import set_monitor_mode, check_chset
 from pinecone.utils.packet import compare_macs, BROADCAST_MAC, get_dot11_addrs_info, WPA_key, \
@@ -51,7 +50,7 @@ class Module(BaseScript):
 
     def run(self, args, cmd):
         with db_session:
-            bss = select_bss(cmd, args.ssid, args.bssid, args.client)
+            bss = cmd.select_bss(args.ssid, args.bssid, args.client)
 
             if bss:
                 if not ("WPA" in bss.encryption_types and "PSK" in bss.authn_types):

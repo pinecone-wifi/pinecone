@@ -1,4 +1,7 @@
-# Pinecone
+<p align="center">
+    <img width=500 src="logo_full.png?raw=true">
+</p>
+
 Pinecone is a WLAN networks auditing tool, suitable for red team usage. It is extensible via modules, and it is designed to be run in Debian-based operating systems. Pinecone is specially oriented to be used with a Raspberry Pi, as a portable wireless auditing box.
 
 This tool is designed for educational and research purposes only. Only use it with explicit permission.
