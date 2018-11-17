@@ -162,8 +162,8 @@ class Pinecone(cmd2.Cmd):
         type(self).do_run = type(self)._do_run
         self.prompt = self.DEFAULT_PROMPT
 
-    def do_exit(self):
-        return self.do_quit("")
+    def do_exit(self, _):
+        return self.do_quit(_)
 
     @db_session
     def select_bss(self, ssid: Optional[str] = None, bssid: Optional[str] = None,
