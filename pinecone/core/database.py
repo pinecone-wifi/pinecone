@@ -21,11 +21,23 @@ def to_dict(entity: db.Entity):
     return ret
 
 
+class Session(db.Entity):
+    name = PrimaryKey(str, max_len=25)
+    description = Optional(str)
+    creation_date = Required(datetime, default=datetime.now)
+
+    bsss = Set('BasicServiceSet')
+    esss = Set('ExtendedServiceSet')
+    conns = Set('Connection')
+    probes = Set('ProbeReq')
+    clients = Set('Client')
+
+
 class BasicServiceSet(db.Entity):
     """BSS model class:
         Represents an Access Point, normally identified by a BSSID (which is a MAC Address)
     """
-    bssid = PrimaryKey(str, max_len=18)
+    bssid = Required(str, max_len=18)
     channel = Optional(int)
     encryption_types = Optional(str)
     cipher_types = Optional(str)
@@ -36,6 +48,10 @@ class BasicServiceSet(db.Entity):
     # band
     # channel_width
     connections = Set("Connection")
+
+    session = Required(Session)
+
+    PrimaryKey(bssid, session)
 
     def __str__(self):
         ess_info = str(self.ess) if self.ess is not None else ""
@@ -50,9 +66,13 @@ class ExtendedServiceSet(db.Entity):
     """ESS model class:
         Represents a set of BSS group by the same network name (SSID)
     """
-    ssid = PrimaryKey(str, max_len=32)
+    ssid = Required(str, max_len=32)
     bssets = Set(BasicServiceSet)
     probes_recvd = Set("ProbeReq")
+
+    session = Required(Session)
+
+    PrimaryKey(ssid, session)
 
     def __str__(self):
         return "SSID: \"{}\"".format(self.ssid)
@@ -66,7 +86,9 @@ class Connection(db.Entity):
     bss = Required(BasicServiceSet)
     last_seen = Required(datetime)
 
-    PrimaryKey(client, bss)
+    session = Required(Session)
+
+    PrimaryKey(client, bss, session)
 
     def __str__(self):
         return "Client: ({}), BSS: ({}), last seen: {}".format(self.client, self.bss, self.last_seen)
@@ -80,7 +102,9 @@ class ProbeReq(db.Entity):
     ess = Required(ExtendedServiceSet)
     last_seen = Required(datetime)
 
-    PrimaryKey(client, ess)
+    session = Required(Session)
+
+    PrimaryKey(client, ess, session)
 
     def __str__(self):
         return "Client: ({}), ESS: ({}), last seen: {}".format(self.client, self.ess, self.last_seen)
@@ -90,9 +114,12 @@ class Client(db.Entity):
     """Client model class:
         Represents any WiFi client
     """
-    mac = PrimaryKey(str, max_len=18)
+    mac = Required(str, max_len=18)
     probe_reqs = Set(ProbeReq)
     connections = Set(Connection)
+
+    session = Required(Session)
+    PrimaryKey(mac, session)
 
     def __str__(self):
         return "MAC: {}".format(self.mac)

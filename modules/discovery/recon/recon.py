@@ -11,6 +11,7 @@ from scapy.layers.dot11 import Dot11, Dot11Elt, Dot11ProbeReq, Dot11Beacon, Dot1
 from scapy.utils import rdpcap
 
 from pinecone.core.database import Client, ExtendedServiceSet, ProbeReq, BasicServiceSet, Connection
+from pinecone.core.main import Pinecone
 from pinecone.core.module import BaseModule
 from pinecone.utils.interface import set_monitor_mode, check_chset
 from pinecone.utils.packet import is_multicast_mac, process_dot11elts, get_dot11_addrs_info, WEP_AUTHN_TYPE_IDS
@@ -79,7 +80,7 @@ class Module(BaseModule):
         self.connections_cache = None
         self.iface_current_channel = None
         self.running = False
-        self.cmd = None
+        self.cmd: Pinecone = None
 
     def sig_int_handler(self, signal, frame):
         self.running = False
@@ -126,6 +127,7 @@ class Module(BaseModule):
     @db_session
     def handle_dot11_header(self, packet: Packet) -> None:
         now = datetime.now()
+        session = self.cmd.session
 
         if packet[Dot11].sprintf("%type%") != "Control":
             client_mac = None
@@ -152,16 +154,15 @@ class Module(BaseModule):
             bss = None
             if bssid:
                 try:
-                    bss = BasicServiceSet[bssid]
-                    bss.last_seen = now
+                    BasicServiceSet[bssid, session].last_seen = now
                 except:
-                    bss = BasicServiceSet(bssid=bssid, last_seen=now)
+                    bss = BasicServiceSet(bssid=bssid, last_seen=now, session=session)
 
             if client_mac:
                 try:
-                    client = Client[client_mac]
+                    client = Client[client_mac, self.cmd.session]
                 except:
-                    client = Client(mac=client_mac)
+                    client = Client(mac=client_mac, session=session)
 
                 if client_mac not in self.clients_cache:
                     self.clients_cache.add(client_mac)
@@ -169,23 +170,22 @@ class Module(BaseModule):
 
                 if bss:
                     try:
-                        Connection[client, bss].last_seen = now
+                        Connection[client, bss, session].last_seen = now
                     except:
-                        Connection(client=client, bss=bss, last_seen=now)
+                        Connection(client=client, bss=bss, last_seen=now, session=session)
 
                     if (client_mac, bssid) not in self.connections_cache:
                         self.connections_cache.add((client_mac, bssid))
                         self.cmd.pfeedback(
                             "[i] Detected connection between client ({}) and BSS (BSSID: {})".format(client, bss.bssid))
 
-    @staticmethod
     @db_session
-    def handle_authn_res(packet: Packet) -> None:
+    def handle_authn_res(self, packet: Packet) -> None:
         authn_packet = packet[Dot11Auth]
 
         if authn_packet.sprintf("%status%") == "success" and authn_packet.seqnum in {2, 4}:
             bssid = packet[Dot11].addr3
-            bss = BasicServiceSet[bssid]
+            bss = BasicServiceSet[bssid, self.cmd.session]
 
             if bss.encryption_types == "WEP" and authn_packet.algo in WEP_AUTHN_TYPE_IDS:
                 bss.authn_types = WEP_AUTHN_TYPE_IDS[authn_packet.algo]
@@ -194,20 +194,21 @@ class Module(BaseModule):
     def handle_probe_req(self, packet: Packet) -> None:
         now = datetime.now()
         ssid = process_dot11elts(packet[Dot11Elt])["ssid"]
+        session = self.cmd.session
 
         if ssid:
             try:
-                ess = ExtendedServiceSet[ssid]
+                ess = ExtendedServiceSet[ssid, session]
             except:
-                ess = ExtendedServiceSet(ssid=ssid)
+                ess = ExtendedServiceSet(ssid=ssid, session=session)
 
             client_mac = packet[Dot11].addr2
-            client = Client[client_mac]
+            client = Client[client_mac, session]
 
             try:
-                ProbeReq[client, ess].last_seen = now
+                ProbeReq[client, ess, session].last_seen = now
             except:
-                ProbeReq(client=client, ess=ess, last_seen=now)
+                ProbeReq(client=client, ess=ess, last_seen=now, session=session)
 
             if (client_mac, ssid) not in self.clients_cache:
                 self.clients_cache.add((client_mac, ssid))
@@ -230,16 +231,16 @@ class Module(BaseModule):
 
         if ssid:
             try:
-                ess = ExtendedServiceSet[ssid]
+                ess = ExtendedServiceSet[ssid, self.cmd.session]
             except:
-                ess = ExtendedServiceSet(ssid=ssid)
+                ess = ExtendedServiceSet(ssid=ssid, session=self.cmd.session)
 
         hides_ssid = ssid == ""
         bssid = packet[Dot11].addr3
         cipher_types = ", ".join(dot11elts_info["cipher_types"])
         authn_types = ", ".join(dot11elts_info["authn_types"])
 
-        bss = BasicServiceSet[bssid]
+        bss = BasicServiceSet[bssid, self.cmd.session]
         bss.channel = channel
         bss.encryption_types = encryption_types
 

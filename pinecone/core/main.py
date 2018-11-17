@@ -2,13 +2,14 @@ import argparse
 import importlib.util
 import re
 import sys
+from typing import Optional
 
 import cmd2
 from cmd2 import argparse_completer
 from pathlib2 import Path
-from typing import Optional
+from pony.orm import ObjectNotFound
 
-from pinecone.core.database import Client, db_session, BasicServiceSet, ExtendedServiceSet
+from pinecone.core.database import Client, db_session, BasicServiceSet, ExtendedServiceSet, Session
 
 TMP_FOLDER_PATH = Path(sys.path[0], "tmp").resolve()  # type: Path
 
@@ -16,6 +17,8 @@ TMP_FOLDER_PATH = Path(sys.path[0], "tmp").resolve()  # type: Path
 class Pinecone(cmd2.Cmd):
     DEFAULT_PROMPT = "pinecone > "
     PROMPT_FORMAT = "pcn {}({}) > "
+
+    _current_session = None
     modules = {}
 
     def __init__(self):
@@ -24,8 +27,24 @@ class Pinecone(cmd2.Cmd):
 
         TMP_FOLDER_PATH.mkdir(parents=True, exist_ok=True)
 
+        self.session = "default"
+
         super().__init__(persistent_history_file=str(Path(TMP_FOLDER_PATH, "pinecone_history")),
                          persistent_history_length=500)
+
+    @property
+    def session(self) -> Session:
+        return self._current_session
+
+    @session.setter
+    @db_session
+    def session(self, session_name):
+        try:
+            session = Session[session_name]
+        except ObjectNotFound:
+            session = Session(name=session_name)
+
+        self._current_session = session.name
 
     @classmethod
     def reload_modules(cls) -> None:
@@ -61,26 +80,99 @@ class Pinecone(cmd2.Cmd):
             else:
                 self.prompt = self.PROMPT_FORMAT.format("module", args.module)
 
+    session_actions = {'checkout', 'delete', 'list', 'info'}
+    session_parser = argparse_completer.ACArgumentParser()
+    session_module_action = session_parser.add_argument(
+        "action",
+        type=str,
+        help="session acction",
+        choices=session_actions
+    )
+    session_parser.add_argument(
+        "session",
+        type=str,
+        nargs="?",
+        help="Session name can only contain letters numbers and underscores (my_session_01)",
+        default='default'
+    )
+    setattr(session_module_action, argparse_completer.ACTION_ARG_CHOICES, session_actions)
+
+    @cmd2.with_argparser(session_parser)
+    @db_session
+    def do_session(self, args: argparse.Namespace) -> None:
+        target_session = args.session
+        if not re.match("\w+[\w_]*", target_session):
+            self.perror("Invalid session name")
+            return
+
+        if args.action == "checkout":
+            self.session = target_session
+        elif args.action == "delete":
+            curr_session = self.session
+            target_session = curr_session if target_session == 'default' else target_session
+
+            deleted_session_name = target_session
+            if deleted_session_name == curr_session:
+                # Switch to default session prior to session delete
+                deleted_session_name = curr_session
+                self.session = "default"
+
+            try:
+                Session[deleted_session_name].delete()
+            except Exception as e:
+                self.perror("Error deleting session {}".format(deleted_session_name), e)
+
+        elif args.action == "list":
+            self.pfeedback("{:25}\t{}".format("Session Name", "Creation Date"))
+            for session in Session.select():
+                self.pfeedback(
+                    "{:25}\t{}".format(
+                        session.name,
+                        session.creation_date
+                    )
+                )
+
+        elif args.action == "info":
+            curr_session = self.session
+            target_session = curr_session if target_session == 'default' else target_session
+
+            try:
+                session = Session[target_session]
+                self.pfeedback(
+                    "Name: {}\nCreation Date: {}\n#Clients: {}\n#BSS: {}\n#ESS: {}".format(
+                        session.name,
+                        session.creation_date,
+                        session.clients.count(),
+                        session.bsss.count(),
+                        session.esss.count()
+                    )
+                )
+            except ObjectNotFound:
+                self.pfeedback("ERROR: Session not found in database")
+
     def _do_run(self, args: argparse.Namespace) -> None:
         self.current_module.run(args, self)
 
     do_run = _do_run
 
-    def do_stop(self, args: argparse.Namespace = None) -> None:
+    def do_stop(self, _: argparse.Namespace = None) -> None:
         self.current_module.stop(self)
 
-    def do_back(self, args: argparse.Namespace = None) -> None:
+    def do_back(self, _: argparse.Namespace = None) -> None:
         type(self).do_run = type(self)._do_run
         self.prompt = self.DEFAULT_PROMPT
+
+    def do_exit(self):
+        return self.do_quit("")
 
     @db_session
     def select_bss(self, ssid: Optional[str] = None, bssid: Optional[str] = None,
                    client_mac: Optional[str] = None) -> Optional[Client]:
         if bssid:
-            return BasicServiceSet.get(bssid=bssid)
+            return BasicServiceSet.get(bssid=bssid, session=self.session)
 
-        ess = ExtendedServiceSet.get(ssid=ssid) if ssid else None
-        client = Client.get(mac=client_mac) if client_mac else None
+        ess = ExtendedServiceSet.get(ssid=ssid, session=self.session) if ssid else None
+        client = Client.get(mac=client_mac, session=self.session) if client_mac else None
 
         if ess and not ess.bssets.is_empty():
             if ess.bssets.count() == 1:
@@ -93,8 +185,10 @@ class Pinecone(cmd2.Cmd):
             if client.connections.count() == 1:
                 bssid = client.connections.select().first().bss.bssid
             else:
-                self.pfeedback("Client {} is associated with multiple BSSIDs, select the appropiate:".format(client_mac))
+                self.pfeedback(
+                    "Client {} is associated with multiple BSSIDs, select the appropiate:".format(client_mac)
+                )
                 bssid = self.select(sorted(conn.bss.bssid for conn in client.connections), "Option: ")
 
         if bssid:
-            return BasicServiceSet.get(bssid=bssid)
+            return BasicServiceSet.get(bssid=bssid, session=self.session)
