@@ -1,7 +1,6 @@
 import sys
 from datetime import datetime
 
-from manuf import manuf
 from pathlib2 import Path
 from pony.orm import *
 
@@ -15,8 +14,6 @@ CIPHER_TYPES = {
 AUTHN_TYPES = {"OPN", "SKA", "PSK", "MGT"}
 
 db = Database()
-
-_mac_parser = Config.MAC_RESOLVER
 
 
 def to_dict(entity: db.Entity):
@@ -50,7 +47,7 @@ class BasicServiceSet(db.Entity):
     def bssid(self):
         if Config.RESOLVE_MAC:
             return "{}:{}".format(
-                _mac_parser.get_manuf(self._bssid) or "Unknown",
+                Config.MAC_RESOLVER.get_manuf(self._bssid) or "Unknown",
                 self._bssid[9:]
             )
         else:
@@ -142,7 +139,7 @@ class Client(db.Entity):
     def mac(self):
         if Config.RESOLVE_MAC:
             return "{}:{}".format(
-                _mac_parser.get_manuf(self._mac) or "Unknown_",
+                Config.MAC_RESOLVER.get_manuf(self._mac) or "Unknown_",
                 self._mac[9:]
             )
         else:
