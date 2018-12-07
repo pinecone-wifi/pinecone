@@ -4,8 +4,6 @@ from datetime import datetime
 from pathlib2 import Path
 from pony.orm import *
 
-from pinecone.core.config import Config
-
 ENCRYPTION_TYPES = {"OPN", "WEP", "WPA", "WPA2"}
 CIPHER_TYPES = {
     "WEP", "WEP-40", "TKIP", "WRAP", "CCMP-128", "WEP-104", "CMAC", "GCMP-128", "GCMP-256", "CCMP-256",
@@ -45,13 +43,7 @@ class BasicServiceSet(db.Entity):
 
     @property
     def bssid(self):
-        if Config.RESOLVE_MAC:
-            return "{}:{}".format(
-                Config.MAC_RESOLVER.get_manuf(self._bssid) or "Unknown",
-                self._bssid[9:]
-            )
-        else:
-            return self._bssid
+        return self._bssid
 
     @bssid.setter
     def bssid(self, value):
@@ -137,13 +129,7 @@ class Client(db.Entity):
 
     @property
     def mac(self):
-        if Config.RESOLVE_MAC:
-            return "{}:{}".format(
-                Config.MAC_RESOLVER.get_manuf(self._mac) or "Unknown_",
-                self._mac[9:]
-            )
-        else:
-            return self._mac
+        return self._mac
 
     @mac.setter
     def mac(self, value):
