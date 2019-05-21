@@ -4,7 +4,7 @@
 PyRIC==0.1.6.3
 pony==0.7.3
 scapy==2.4.0
-Jinja2==2.10
+Jinja2>=2.10.1
 pathlib2==2.3.2
 psutil==5.4.6
 python-iptables==0.13.0
