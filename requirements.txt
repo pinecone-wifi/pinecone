@@ -3,7 +3,7 @@
 
 PyRIC==0.1.6.3
 pony==0.7.3
-scapy==2.4.0
+scapy==2.4.1
 Jinja2>=2.10.1
 pathlib2==2.3.2
 psutil==5.4.6
