@@ -129,90 +129,6 @@ class PMKIDListPacket(Packet):
         return "", s
 
 
-# Original source
-# https://github.com/secdev/scapy/blob/1fc08e01f9d88c226e6a2132d6dec2a43eb660dd/scapy/layers/dot11.py#L532
-class Dot11EltRSN(Dot11Elt):
-    name = "RSN information"
-    fields_desc = [
-        ByteField("ID", 48),
-        ByteField("len", None),
-        LEShortField("version", 1),
-        PacketField("group_cipher_suite", RSNCipherSuite(), RSNCipherSuite),
-        LEFieldLenField(
-            "nb_pairwise_cipher_suites",
-            1,
-            count_of="pairwise_cipher_suites"
-        ),
-        PacketListField(
-            "pairwise_cipher_suites",
-            [RSNCipherSuite()],
-            RSNCipherSuite,
-            count_from=lambda p: p.nb_pairwise_cipher_suites
-        ),
-        LEFieldLenField(
-            "nb_akm_suites",
-            1,
-            count_of="akm_suites"
-        ),
-        PacketListField(
-            "akm_suites",
-            [AKMSuite()],
-            AKMSuite,
-            count_from=lambda p: p.nb_akm_suites
-        ),
-        BitField("pre_auth", 0, 1),
-        BitField("no_pairwise", 0, 1),
-        BitField("ptksa_replay_counter", 0, 2),
-        BitField("gtksa_replay_counter", 0, 2),
-        BitField("mfp_required", 0, 1),
-        BitField("mfp_capable", 0, 1),
-        BitField("reserved", 0, 8),
-        ConditionalField(
-            PacketField("pmkids", None, PMKIDListPacket),
-            lambda pkt: (
-                0 if pkt.len is None else
-                pkt.len - (12 + (pkt.nb_pairwise_cipher_suites * 4) +
-                           (pkt.nb_akm_suites * 4)) >= 18)
-        )
-    ]
-
-
-# Edited, original source
-# https://github.com/secdev/scapy/blob/1fc08e01f9d88c226e6a2132d6dec2a43eb660dd/scapy/layers/dot11.py#L578
-class Dot11EltMicrosoftWPA(Dot11Elt):
-    name = "Microsoft WPA"
-    fields_desc = [
-        ByteField("ID", 221),
-        ByteField("len", None),
-        X3BytesField("oui", 0x0050f2),
-        XByteField("type", 0x01),
-        LEShortField("version", 1),
-        PacketField("group_cipher_suite", RSNCipherSuite(), RSNCipherSuite),
-        LEFieldLenField(
-            "nb_pairwise_cipher_suites",
-            1,
-            count_of="pairwise_cipher_suites"
-        ),
-        PacketListField(
-            "pairwise_cipher_suites",
-            [RSNCipherSuite()],
-            RSNCipherSuite,
-            count_from=lambda p: p.nb_pairwise_cipher_suites
-        ),
-        LEFieldLenField(
-            "nb_akm_suites",
-            1,
-            count_of="akm_suites"
-        ),
-        PacketListField(
-            "akm_suites",
-            AKMSuite(),
-            AKMSuite,
-            count_from=lambda p: p.nb_akm_suites
-        )
-    ]
-
-
 def is_multicast_mac(mac: str) -> bool:
     return (mac2str(mac)[0] % 2) != 0
 
@@ -268,14 +184,11 @@ def _process_security_dot11elt(sec_dot11elt: Dot11Elt) -> Dict[str, Any]:
         "cipher_types": set(),
         "authn_types": set()
     }
-    sec_dot11elt_id = sec_dot11elt.sprintf("%ID%")
 
-    if sec_dot11elt_id == "RSNinfo":
+    if sec_dot11elt.ID == 48:
         sec_info["encryption_type"] = "WPA2"
-        sec_dot11elt = Dot11EltRSN(sec_dot11elt)
-    elif sec_dot11elt_id == "vendor":
+    elif sec_dot11elt.ID == 221:
         sec_info["encryption_type"] = "WPA"
-        sec_dot11elt = Dot11EltMicrosoftWPA(sec_dot11elt)
 
     sec_info["cipher_types"].update({WPA_CIPHER_TYPE_IDS.get(c.cipher) for c in sec_dot11elt.pairwise_cipher_suites})
     sec_info["cipher_types"].intersection_update(database.CIPHER_TYPES)
@@ -314,8 +227,8 @@ def process_dot11elts(dot11elts: Dot11Elt) -> Dict[str, Any]:
                 dot11elts_info["channel"] = dot11elt.info[0]
             except:
                 pass
-        elif ("WPA2" not in dot11elts_info["encryption_types"] and dot11elt_id == "RSNinfo") or ("WPA" not in
-                dot11elts_info["encryption_types"] and dot11elt_id == "vendor" and
+        elif ("WPA2" not in dot11elts_info["encryption_types"] and dot11elt.ID == 48) or ("WPA" not in
+                dot11elts_info["encryption_types"] and dot11elt.ID == 221 and
                 dot11elt.info.startswith(b"\x00\x50\xf2\x01\x01\x00")):
             sec_dot11elt_info = _process_security_dot11elt(dot11elt)
             dot11elts_info["encryption_types"].add(sec_dot11elt_info["encryption_type"])

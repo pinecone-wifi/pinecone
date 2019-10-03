@@ -7,7 +7,7 @@ from time import sleep
 from pony.orm import *
 from pyric.pyw import Card
 from scapy.all import sniff, Packet
-from scapy.layers.dot11 import Dot11, Dot11Elt, Dot11ProbeReq, Dot11Beacon, Dot11Auth
+from scapy.layers.dot11 import Dot11, Dot11FCS, Dot11Elt, Dot11ProbeReq, Dot11Beacon, Dot11Auth
 from scapy.utils import rdpcap
 
 from pinecone.core.database import Client, ExtendedServiceSet, ProbeReq, BasicServiceSet, Connection
@@ -270,7 +270,7 @@ class Module(BaseModule):
     @db_session
     def handle_packet(self, packet: Packet) -> None:
         try:
-            if packet.haslayer(Dot11):
+            if packet.haslayer(Dot11) or packet.haslayer(Dot11FCS):
                 self.handle_dot11_header(packet)
 
                 if packet.haslayer(Dot11Beacon):

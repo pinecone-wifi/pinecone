@@ -5,7 +5,7 @@ import sys
 from typing import Optional
 
 import cmd2
-from cmd2 import argparse_completer
+from cmd2 import Cmd2ArgumentParser
 from pathlib2 import Path
 from pony.orm import ObjectNotFound
 
@@ -62,9 +62,8 @@ class Pinecone(cmd2.Cmd):
                 module_class = module.Module
                 cls.modules[module_class.META["id"]] = module_class()
 
-    use_parser = argparse_completer.ACArgumentParser()
-    use_module_action = use_parser.add_argument("module", type=str, help="module ID")
-    setattr(use_module_action, argparse_completer.ACTION_ARG_CHOICES, modules)
+    use_parser = Cmd2ArgumentParser()
+    use_module_action = use_parser.add_argument("module", choices=modules, type=str, help="module ID")
 
     @cmd2.with_argparser(use_parser)
     def do_use(self, args: argparse.Namespace) -> None:
@@ -81,7 +80,7 @@ class Pinecone(cmd2.Cmd):
                 self.prompt = self.PROMPT_FORMAT.format("module", args.module)
 
     session_actions = {'checkout', 'delete', 'list', 'info'}
-    session_parser = argparse_completer.ACArgumentParser()
+    session_parser = Cmd2ArgumentParser()
     session_module_action = session_parser.add_argument(
         "action",
         type=str,
@@ -95,7 +94,6 @@ class Pinecone(cmd2.Cmd):
         help="Session name can only contain letters numbers and underscores (my_session_01)",
         default='default'
     )
-    setattr(session_module_action, argparse_completer.ACTION_ARG_CHOICES, session_actions)
 
     @cmd2.with_argparser(session_parser)
     @db_session

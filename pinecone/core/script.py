@@ -20,14 +20,14 @@ class BaseScript(BaseModule):
     def run(self, args, cmd):
         render_template(self.START_SCRIPT_TEMPLATE_PATH, self.start_script_path, args)
         cmd.do_back()
-        cmd.do_load(str(self.start_script_path))
+        cmd.do_run_script(str(self.start_script_path))
         cmd.runcmds_plus_hooks([])
         cmd.do_back()
         cmd.do_use(self.META["id"])
 
     def stop(self, cmd):
         cmd.do_back()
-        cmd.do_load(str(self.STOP_SCRIPT_PATH))
+        cmd.do_run_script(str(self.STOP_SCRIPT_PATH))
         cmd.runcmds_plus_hooks([])
         cmd.do_back()
         cmd.do_use(self.META["id"])

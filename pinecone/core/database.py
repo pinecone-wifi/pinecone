@@ -39,16 +39,7 @@ class BasicServiceSet(db.Entity):
     """BSS model class:
         Represents an Access Point, normally identified by a BSSID (which is a MAC Address)
     """
-    _bssid = Required(str, max_len=18, column='bssid')
-
-    @property
-    def bssid(self):
-        return self._bssid
-
-    @bssid.setter
-    def bssid(self, value):
-        self._bssid = value
-
+    bssid = Required(str, max_len=18, column='bssid')
     channel = Optional(int)
     encryption_types = Optional(str)
     cipher_types = Optional(str)
@@ -62,7 +53,7 @@ class BasicServiceSet(db.Entity):
 
     session = Required(Session)
 
-    PrimaryKey(_bssid, session)
+    PrimaryKey(bssid, session)
 
     def __str__(self):
         ess_info = str(self.ess) if self.ess is not None else ""
@@ -125,21 +116,12 @@ class Client(db.Entity):
     """Client model class:
         Represents any WiFi client
     """
-    _mac = Required(str, max_len=18, column='mac')
-
-    @property
-    def mac(self):
-        return self._mac
-
-    @mac.setter
-    def mac(self, value):
-        self._mac = value
-
+    mac = Required(str, max_len=18, column='mac')
     probe_reqs = Set(ProbeReq)
     connections = Set(Connection)
 
     session = Required(Session)
-    PrimaryKey(_mac, session)
+    PrimaryKey(mac, session)
 
     def __str__(self):
         return "MAC: {}".format(self.mac)
