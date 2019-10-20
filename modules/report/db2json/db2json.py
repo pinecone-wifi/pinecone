@@ -30,7 +30,7 @@ class Module(BaseModule):
             "clients": []
         }
 
-        for bss in BasicServiceSet.select(lambda x: x.session == cmd.session):
+        for bss in BasicServiceSet.select():
             if bss.ess is None:
                 ess = None
             else:
@@ -49,12 +49,12 @@ class Module(BaseModule):
                 "hides_ssid": bss.hides_ssid
             })
 
-        for ess in ExtendedServiceSet.select(lambda x: x.session == cmd.session):
+        for ess in ExtendedServiceSet.select():
             json_dict["extended_service_sets"].append({
                 "ssid": ess.ssid
             })
 
-        for connection in Connection.select(lambda x: x.session == cmd.session):
+        for connection in Connection.select():
             json_dict["connections"].append({
                 "client": {
                     "mac": connection.client.mac
@@ -65,7 +65,7 @@ class Module(BaseModule):
                 "last_seen": str(connection.last_seen)
             })
 
-        for probe_req in ProbeReq.select(lambda x: x.session == cmd.session):
+        for probe_req in ProbeReq.select():
             json_dict["probe_reqs"].append({
                 "client": {
                     "mac": probe_req.client.mac
@@ -76,7 +76,7 @@ class Module(BaseModule):
                 "last_seen": str(probe_req.last_seen)
             })
 
-        for client in Client.select(lambda x: x.session == cmd.session):
+        for client in Client.select():
             json_dict["clients"].append({
                 "mac": client.mac
             })

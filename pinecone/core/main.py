@@ -7,18 +7,16 @@ from typing import Optional
 import cmd2
 from cmd2 import Cmd2ArgumentParser
 from pathlib2 import Path
-from pony.orm import ObjectNotFound
 
-from pinecone.core.database import Client, db_session, BasicServiceSet, ExtendedServiceSet, Session
+from pinecone.core.database import Client, db_session, BasicServiceSet, ExtendedServiceSet
 
-TMP_FOLDER_PATH = Path(sys.path[0], "tmp").resolve()  # type: Path
+TMP_FOLDER_PATH: Path = Path(sys.path[0], "tmp").resolve()
 
 
 class Pinecone(cmd2.Cmd):
     DEFAULT_PROMPT = "pinecone > "
     PROMPT_FORMAT = "pcn {}({}) > "
 
-    _current_session = None
     modules = {}
 
     def __init__(self):
@@ -27,24 +25,8 @@ class Pinecone(cmd2.Cmd):
 
         TMP_FOLDER_PATH.mkdir(parents=True, exist_ok=True)
 
-        self.session = "default"
-
         super().__init__(persistent_history_file=str(Path(TMP_FOLDER_PATH, "pinecone_history")),
                          persistent_history_length=500)
-
-    @property
-    def session(self) -> Session:
-        return self._current_session
-
-    @session.setter
-    @db_session
-    def session(self, session_name):
-        try:
-            session = Session[session_name]
-        except ObjectNotFound:
-            session = Session(name=session_name)
-
-        self._current_session = session.name
 
     @classmethod
     def reload_modules(cls) -> None:
@@ -79,13 +61,14 @@ class Pinecone(cmd2.Cmd):
             else:
                 self.prompt = self.PROMPT_FORMAT.format("module", args.module)
 
+    """
     session_actions = {'checkout', 'delete', 'list', 'info'}
     session_parser = Cmd2ArgumentParser()
     session_module_action = session_parser.add_argument(
         "action",
         type=str,
-        help="session acction",
-        choices=session_actions
+        help="session action",
+        choices=session_actions,
     )
     session_parser.add_argument(
         "session",
@@ -98,8 +81,10 @@ class Pinecone(cmd2.Cmd):
     @cmd2.with_argparser(session_parser)
     @db_session
     def do_session(self, args: argparse.Namespace) -> None:
+        '''Interact with sessions.'''
+
         target_session = args.session
-        if not re.match("\w+[\w_]*", target_session):
+        if not re.match(r"\w+[\w_]*", target_session):
             self.perror("Invalid session name")
             return
 
@@ -147,6 +132,7 @@ class Pinecone(cmd2.Cmd):
                 )
             except ObjectNotFound:
                 self.pfeedback("ERROR: Session not found in database")
+    """
 
     def _do_run(self, args: argparse.Namespace) -> None:
         self.current_module.run(args, self)
@@ -167,10 +153,10 @@ class Pinecone(cmd2.Cmd):
     def select_bss(self, ssid: Optional[str] = None, bssid: Optional[str] = None,
                    client_mac: Optional[str] = None) -> Optional[Client]:
         if bssid:
-            return BasicServiceSet.get(bssid=bssid, session=self.session)
+            return BasicServiceSet.get(bssid=bssid)
 
-        ess = ExtendedServiceSet.get(ssid=ssid, session=self.session) if ssid else None
-        client = Client.get(mac=client_mac, session=self.session) if client_mac else None
+        ess = ExtendedServiceSet.get(ssid=ssid) if ssid else None
+        client = Client.get(mac=client_mac) if client_mac else None
 
         if ess and not ess.bssets.is_empty():
             if ess.bssets.count() == 1:
@@ -189,4 +175,4 @@ class Pinecone(cmd2.Cmd):
                 bssid = self.select(sorted(conn.bss.bssid for conn in client.connections), "Option: ")
 
         if bssid:
-            return BasicServiceSet.get(bssid=bssid, session=self.session)
+            return BasicServiceSet.get(bssid=bssid)

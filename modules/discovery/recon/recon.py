@@ -127,7 +127,6 @@ class Module(BaseModule):
     @db_session
     def handle_dot11_header(self, packet: Packet) -> None:
         now = datetime.now()
-        session = self.cmd.session
 
         if packet[Dot11].sprintf("%type%") != "Control":
             client_mac = None
@@ -154,15 +153,15 @@ class Module(BaseModule):
             bss = None
             if bssid:
                 try:
-                    BasicServiceSet[bssid, session].last_seen = now
+                    BasicServiceSet[bssid].last_seen = now
                 except:
-                    bss = BasicServiceSet(bssid=bssid, last_seen=now, session=session)
+                    bss = BasicServiceSet(bssid=bssid, last_seen=now)
 
             if client_mac:
                 try:
-                    client = Client[client_mac, self.cmd.session]
+                    client = Client[client_mac]
                 except:
-                    client = Client(mac=client_mac, session=session)
+                    client = Client(mac=client_mac)
 
                 if client_mac not in self.clients_cache:
                     self.clients_cache.add(client_mac)
@@ -170,9 +169,9 @@ class Module(BaseModule):
 
                 if bss:
                     try:
-                        Connection[client, bss, session].last_seen = now
+                        Connection[client, bss].last_seen = now
                     except:
-                        Connection(client=client, bss=bss, last_seen=now, session=session)
+                        Connection(client=client, bss=bss, last_seen=now)
 
                     if (client_mac, bssid) not in self.connections_cache:
                         self.connections_cache.add((client_mac, bssid))
@@ -185,7 +184,7 @@ class Module(BaseModule):
 
         if authn_packet.sprintf("%status%") == "success" and authn_packet.seqnum in {2, 4}:
             bssid = packet[Dot11].addr3
-            bss = BasicServiceSet[bssid, self.cmd.session]
+            bss = BasicServiceSet[bssid]
 
             if bss.encryption_types == "WEP" and authn_packet.algo in WEP_AUTHN_TYPE_IDS:
                 bss.authn_types = WEP_AUTHN_TYPE_IDS[authn_packet.algo]
@@ -194,21 +193,20 @@ class Module(BaseModule):
     def handle_probe_req(self, packet: Packet) -> None:
         now = datetime.now()
         ssid = process_dot11elts(packet[Dot11Elt])["ssid"]
-        session = self.cmd.session
 
         if ssid:
             try:
-                ess = ExtendedServiceSet[ssid, session]
+                ess = ExtendedServiceSet[ssid]
             except:
-                ess = ExtendedServiceSet(ssid=ssid, session=session)
+                ess = ExtendedServiceSet(ssid=ssid)
 
             client_mac = packet[Dot11].addr2
-            client = Client[client_mac, session]
+            client = Client[client_mac]
 
             try:
-                ProbeReq[client, ess, session].last_seen = now
+                ProbeReq[client, ess].last_seen = now
             except:
-                ProbeReq(client=client, ess=ess, last_seen=now, session=session)
+                ProbeReq(client=client, ess=ess, last_seen=now)
 
             if (client_mac, ssid) not in self.clients_cache:
                 self.clients_cache.add((client_mac, ssid))
@@ -231,16 +229,16 @@ class Module(BaseModule):
 
         if ssid:
             try:
-                ess = ExtendedServiceSet[ssid, self.cmd.session]
+                ess = ExtendedServiceSet[ssid]
             except:
-                ess = ExtendedServiceSet(ssid=ssid, session=self.cmd.session)
+                ess = ExtendedServiceSet(ssid=ssid)
 
         hides_ssid = ssid == ""
         bssid = packet[Dot11].addr3
         cipher_types = ", ".join(dot11elts_info["cipher_types"])
         authn_types = ", ".join(dot11elts_info["authn_types"])
 
-        bss = BasicServiceSet[bssid, self.cmd.session]
+        bss = BasicServiceSet[bssid]
         bss.channel = channel
         bss.encryption_types = encryption_types
 

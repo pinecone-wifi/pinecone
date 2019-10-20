@@ -96,7 +96,7 @@ class Module(BaseScript):
 
             with db_session:
                 try:
-                    for bss in ExtendedServiceSet[args.ssid, cmd.session].bssets.select(lambda bss: bss.channel == args.channel):
+                    for bss in ExtendedServiceSet[args.ssid].bssets.select(lambda bss: bss.channel == args.channel):
                         script_args.deauth_args_lst.append(to_args_str({
                             "iface": additional_mon_iface_name,
                             "bssid": bss.bssid,

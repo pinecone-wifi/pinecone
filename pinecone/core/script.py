@@ -8,10 +8,10 @@ from pinecone.utils.template import render_template
 
 
 class BaseScript(BaseModule):
-    START_SCRIPT_TEMPLATE_PATH = None  # type: Path
-    START_SCRIPT_FILENAME = None  # type: str
+    START_SCRIPT_TEMPLATE_PATH: Path = None
+    START_SCRIPT_FILENAME: str = None
 
-    STOP_SCRIPT_PATH = None  # type: Path
+    STOP_SCRIPT_PATH: Path = None
 
     @abstractmethod
     def __init__(self):

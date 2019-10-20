@@ -11,7 +11,7 @@ from pinecone.utils.template import render_template
 
 class BaseModule(ABC):
     # Module's meta-information.
-    META = {
+    META: Dict[str, Any] = {
         # ID of the module as it would appear in the directories tree.
         "id": None,
         # Module's short name.
@@ -28,7 +28,7 @@ class BaseModule(ABC):
         # Set of module's dependencies. They can be either Python packages and, in the case of developing a Pinecone
         # extension script, also other modules IDs.
         "depends": None
-    }  # type: Dict[str, Any]
+    }
 
     @abstractmethod
     def run(self, args: argparse.Namespace, cmd: Pinecone) -> Any:
@@ -55,9 +55,9 @@ class BaseModule(ABC):
 
 
 class DaemonBaseModule(BaseModule):
-    PROCESS_NAME = None  # type: str
-    CONFIG_TEMPLATE_PATH = None  # type: Path
-    CONFIG_FILENAME = None  # type: str
+    PROCESS_NAME: str = None
+    CONFIG_TEMPLATE_PATH: Path = None
+    CONFIG_FILENAME: str = None
 
     @abstractmethod
     def __init__(self):

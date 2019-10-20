@@ -3,7 +3,7 @@ import argparse
 from pony.orm import db_session
 from py2neo import Graph, Relationship, Transaction
 
-from pinecone.core.database import to_dict, Session
+from pinecone.core.database import to_dict, BasicServiceSet, Client
 from pinecone.core.main import Pinecone
 from pinecone.core.module import BaseModule
 
@@ -24,11 +24,7 @@ class Module(BaseModule):
         default="bolt://neo4j:neo4j@127.0.0.1:7687"
     )
 
-    target_session: Session
-
     def run(self, args, cmd):
-        self.target_session = cmd.session
-
         driver = Graph(args.uri)
 
         tx = driver.begin()
@@ -46,9 +42,8 @@ class Module(BaseModule):
 
     @db_session
     def _create_bss_nodes(self, tx: Transaction):
-        for bss in Session[self.target_session].bsss:
+        for bss in BasicServiceSet.select():
             bss_data = to_dict(bss)
-            bss_data["session_" + self.target_session] = True
             bss_node = tx.evaluate(
                 "MERGE (_:BSS {bssid:{bssid}}) SET _ += {bss} RETURN _",
                 bss=bss_data,
@@ -57,7 +52,6 @@ class Module(BaseModule):
 
             if bss.ess is not None:
                 ess_data = to_dict(bss.ess)
-                ess_data["session_" + self.target_session] = True
 
                 ess_node = tx.evaluate(
                     "MERGE (_:ESS {ssid:{ssid}}) SET _ += {ess} RETURN _",
@@ -70,9 +64,8 @@ class Module(BaseModule):
 
     @db_session
     def _create_client_nodes(self, tx: Transaction):
-        for client in Session[self.target_session].clients:
+        for client in Client.select():
             client_data = to_dict(client)
-            client_data["session_" + self.target_session] = True
             client_node = tx.evaluate(
                 "MERGE (_:Client {mac:{mac}}) SET _ += {client} RETURN _",
                 client=client_data,
@@ -81,7 +74,6 @@ class Module(BaseModule):
 
             for connection in client.connections:
                 bss_data = to_dict(connection.bss)
-                bss_data["session_" + self.target_session] = True
                 bss_node = tx.evaluate(
                     "MERGE (_:BSS {bssid:{bssid}}) SET _ += {bss} RETURN _",
                     bss=bss_data,
@@ -89,12 +81,10 @@ class Module(BaseModule):
                 )
 
                 connection_rel = Relationship(client_node, "CONNECTED", bss_node, **to_dict(connection))
-                connection_rel["session_" + self.target_session] = True
                 tx.create(connection_rel)
 
             for probe in client.probe_reqs:
                 ess_data = to_dict(probe.ess)
-                ess_data["session_" + self.target_session] = True
 
                 ess_node = tx.evaluate(
                     "MERGE (_:ESS {ssid:{ssid}}) SET _ += {ess} RETURN _",
@@ -103,5 +93,4 @@ class Module(BaseModule):
                 )
 
                 announcement = Relationship(client_node, "PROBES", ess_node, **to_dict(probe))
-                announcement["session_" + self.target_session] = True
                 tx.create(announcement)

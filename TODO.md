@@ -1,6 +1,5 @@
 - **TODO:**
     * Comments in source code.
-    * Network graph report module (@rsrdesarrollo).
     ---------
     * Custom hosts in dnsmasq module.
     * Include last_seen field in clients in DB.
