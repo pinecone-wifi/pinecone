@@ -125,10 +125,10 @@ class Module(BaseModule):
         self.connections_cache = set()
 
     @db_session
-    def handle_dot11_header(self, packet: Packet) -> None:
+    def handle_dot11_header(self, packet: Dot11) -> None:
         now = datetime.now()
 
-        if packet[Dot11].sprintf("%type%") != "Control":
+        if packet.sprintf("%type%") != "Control":
             client_mac = None
             dot11_addrs_info = get_dot11_addrs_info(packet)
             dot11_ds_bits = dot11_addrs_info["ds_bits"]
@@ -234,7 +234,7 @@ class Module(BaseModule):
                 ess = ExtendedServiceSet(ssid=ssid)
 
         hides_ssid = ssid == ""
-        bssid = packet[Dot11].addr3
+        bssid = packet.addr3
         cipher_types = ", ".join(dot11elts_info["cipher_types"])
         authn_types = ", ".join(dot11elts_info["authn_types"])
 
@@ -269,6 +269,7 @@ class Module(BaseModule):
     def handle_packet(self, packet: Packet) -> None:
         try:
             if packet.haslayer(Dot11) or packet.haslayer(Dot11FCS):
+                packet = packet[Dot11 if packet.haslayer(Dot11) else Dot11FCS]
                 self.handle_dot11_header(packet)
 
                 if packet.haslayer(Dot11Beacon):

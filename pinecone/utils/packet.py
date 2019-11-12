@@ -141,21 +141,19 @@ def get_flags_set(flags: FlagValue) -> Set[str]:
     return set(str(flags).split("+"))
 
 
-def get_dot11_ds_bits(packet: Packet) -> Set[str]:
-    return get_flags_set(packet[Dot11].FCfield) & {"to-DS", "from-DS"}
+def get_dot11_ds_bits(packet: Dot11) -> Set[str]:
+    return get_flags_set(packet.FCfield) & {"to-DS", "from-DS"}
 
 
-def get_dot11_addrs_info(packet: Packet) -> Dict[str, Any]:
+def get_dot11_addrs_info(dot11_packet: Dot11) -> Dict[str, Any]:
     dot11_addrs_info = {
         "da": None,
         "sa": None,
         "bssid": None,
         "ra": None,
         "ta": None,
-        "ds_bits": get_dot11_ds_bits(packet)
+        "ds_bits": get_dot11_ds_bits(dot11_packet)
     }
-
-    dot11_packet = packet[Dot11]
 
     if not dot11_addrs_info["ds_bits"]:  # no to-DS & no from-DS
         dot11_addrs_info["da"] = dot11_packet.addr1
