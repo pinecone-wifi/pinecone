@@ -47,6 +47,8 @@ class BasicServiceSet(db.Entity):
     last_seen = Required(datetime)
     ess = Optional("ExtendedServiceSet")
     hides_ssid = Optional(bool)
+
+    max_dbm_power = Optional(int)
     # band
     # channel_width
     connections = Set("Connection")
