@@ -50,7 +50,7 @@ class Module(BaseModule):
         "depends": {}
     }
     META["options"].add_argument(
-        "ifaces",
+        "-i", "--ifaces",
         help="monitor mode capable WLAN interfaces",
         default="wlan0",
         required=False,
@@ -319,7 +319,7 @@ class Module(BaseModule):
         join_to.append(handle_queue_thread)
 
         for iface in args.ifaces:
-            interfaces = interfaces.append(set_monitor_mode(iface))
+            interfaces.append(set_monitor_mode(iface))
 
             sniff_thread = Thread(target=self.sniff, kwargs={
                 "iface": iface
