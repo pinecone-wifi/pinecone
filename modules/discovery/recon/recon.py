@@ -11,7 +11,7 @@ from time import sleep
 from pony.orm import *
 from pyric.pyw import Card
 from scapy.all import sniff, Packet
-from scapy.layers.dot11 import Dot11, Dot11FCS, Dot11Elt, Dot11ProbeReq, Dot11Beacon, Dot11Auth
+from scapy.layers.dot11 import Dot11, Dot11FCS, Dot11Elt, Dot11ProbeReq, Dot11Beacon, Dot11Auth, RadioTap
 from scapy.utils import rdpcap
 
 from pinecone.core.database import Client, ExtendedServiceSet, ProbeReq, BasicServiceSet, Connection
@@ -163,9 +163,18 @@ class Module(BaseModule):
             bss = None
             if bssid:
                 try:
-                    BasicServiceSet[bssid, session].last_seen = now
+                    bss = BasicServiceSet[bssid, session]
+                    bss.last_seen = now
                 except:
                     bss = BasicServiceSet(bssid=bssid, last_seen=now, session=session)
+
+            if dot11_addrs_info["ta"] != dot11_addrs_info["bssid"]:
+                # Transmission Address match bssid, so packet came from an AP
+                # get signal strength and update DB if needed
+                current_dbm = packet[RadioTap].dBm_AntSignal
+                if not bss.max_dbm_power or current_dbm > bss.max_dbm_power:
+                    bss.max_dbm_power = current_dbm
+                    # TODO: Get GPS fix and update max power position
 
             if client_mac:
                 try:
@@ -266,14 +275,16 @@ class Module(BaseModule):
             self.bssids_cache.add(bssid)
 
             ssid = "\"{}\"".format(ssid) if ssid else "<empty>"
+            current_dbm = packet[RadioTap].dBm_AntSignal
             self.cmd.pfeedback(
-                "[i] Detected AP (SSID: {}, BSSID: {}, ch: {}, enc: ({}), cipher: ({}), authn: ({})).".format(
+                "[i] Detected AP (SSID: {}, BSSID: {}, ch: {}, enc: ({}), cipher: ({}), authn: ({}), dBm: ({})).".format(
                     ssid,
                     bss.bssid,
                     bss.channel,
                     bss.encryption_types,
                     bss.cipher_types,
-                    bss.authn_types)
+                    bss.authn_types,
+                    current_dbm)
             )
 
     @db_session
