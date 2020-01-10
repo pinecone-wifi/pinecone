@@ -1,5 +1,9 @@
 import argparse
 import signal
+import itertools
+
+from queue import Queue, Empty
+
 from datetime import datetime
 from threading import Thread
 from time import sleep
@@ -46,10 +50,11 @@ class Module(BaseModule):
         "depends": {}
     }
     META["options"].add_argument(
-        "-i", "--iface",
-        help="monitor mode capable WLAN interface",
+        "ifaces",
+        help="monitor mode capable WLAN interfaces",
         default="wlan0",
         required=False,
+        nargs="*",
         metavar="INTERFACE"
     )
     META["options"].add_argument(
@@ -81,6 +86,7 @@ class Module(BaseModule):
         self.iface_current_channel = None
         self.running = False
         self.cmd: Pinecone = None
+        self.in_pkcs_queue = Queue()
 
     def sig_int_handler(self, signal, frame):
         self.running = False
@@ -93,17 +99,20 @@ class Module(BaseModule):
             self.cmd.perror("[!] Exception while sniffing: {}".format(e))
             self.running = False
 
-    def channel_hopping(self, interface: Card, band: str) -> None:
+    def channel_hopping(self, interfaces: Card, band: str) -> None:
+        channel_iterator = itertools.cycle(self.CHANNEL_HOPS[band])
         while self.running:
-            for channel in self.CHANNEL_HOPS[band]:
-                if not self.running: break
+            for interface in interfaces:
+                if not self.running:
+                    break
 
                 try:
-                    self._hop_to_channel(interface, channel)
-                    # ref: https://github.com/aircrack-ng/aircrack-ng/blob/master/src/airodump-ng.h#L40
-                    sleep(0.250)
+                    self._hop_to_channel(interface, next(channel_iterator))
                 except:
                     pass
+
+            # ref: https://github.com/aircrack-ng/aircrack-ng/blob/master/src/airodump-ng.h#L40
+            sleep(0.250)
 
     def run(self, args, cmd):
         self.cmd = cmd
@@ -268,17 +277,31 @@ class Module(BaseModule):
             )
 
     @db_session
+    def handle_packet_queue(self) -> None:
+        while self.running:
+            try:
+                packet = self.in_pkcs_queue.get(timeout=1)
+            except Empty:
+                # Allow re evaluation of self.running for controlled cleanup
+                continue
+
+            try:
+                if packet.haslayer(Dot11) or packet.haslayer(Dot11FCS):
+                    self.handle_dot11_header(packet)
+
+                    if packet.haslayer(Dot11Beacon):
+                        self.handle_beacon(packet)
+                    elif packet.haslayer(Dot11ProbeReq):
+                        self.handle_probe_req(packet)
+                    elif packet.haslayer(Dot11Auth):
+                        self.handle_authn_res(packet)
+            except Exception as e:
+                self.cmd.perror("[!] Exception while handling packet: {}\n{}".format(e, packet.show(dump=True)))
+
     def handle_packet(self, packet: Packet) -> None:
         try:
             if packet.haslayer(Dot11) or packet.haslayer(Dot11FCS):
-                self.handle_dot11_header(packet)
-
-                if packet.haslayer(Dot11Beacon):
-                    self.handle_beacon(packet)
-                elif packet.haslayer(Dot11ProbeReq):
-                    self.handle_probe_req(packet)
-                elif packet.haslayer(Dot11Auth):
-                    self.handle_authn_res(packet)
+                self.in_pkcs_queue.put(packet)
         except Exception as e:
             self.cmd.perror("[!] Exception while handling packet: {}\n{}".format(e, packet.show(dump=True)))
 
@@ -287,24 +310,34 @@ class Module(BaseModule):
         self.iface_current_channel = channel
 
     def _run_on_interface(self, args):
-        interface = set_monitor_mode(args.iface)
-
+        interfaces = []
         join_to = []
-        sniff_thread = Thread(target=self.sniff, kwargs={
-            "iface": args.iface
-        })
-        sniff_thread.start()
-        join_to.append(sniff_thread)
+
+        handle_queue_thread = Thread(target=self.handle_packet_queue)
+        handle_queue_thread.start()
+
+        join_to.append(handle_queue_thread)
+
+        for iface in args.ifaces:
+            interfaces = interfaces.append(set_monitor_mode(iface))
+
+            sniff_thread = Thread(target=self.sniff, kwargs={
+                "iface": iface
+            })
+            sniff_thread.start()
+
+            join_to.append(sniff_thread)
 
         if args.channel is None:
             hopping_thread = Thread(target=self.channel_hopping, kwargs={
-                "interface": interface,
+                "interfaces": interfaces,
                 "band": args.band
             })
             hopping_thread.start()
             join_to.append(hopping_thread)
         else:
-            check_chset(interface, args.channel)
+            for interface in interfaces:
+                check_chset(interface, args.channel)
 
         prev_sig_handler = signal.signal(signal.SIGINT, self.sig_int_handler)
 
