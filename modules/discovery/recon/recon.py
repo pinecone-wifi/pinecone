@@ -168,13 +168,13 @@ class Module(BaseModule):
                 except:
                     bss = BasicServiceSet(bssid=bssid, last_seen=now, session=session)
 
-            if dot11_addrs_info["ta"] != dot11_addrs_info["bssid"]:
-                # Transmission Address match bssid, so packet came from an AP
-                # get signal strength and update DB if needed
-                current_dbm = packet[RadioTap].dBm_AntSignal
-                if not bss.max_dbm_power or current_dbm > bss.max_dbm_power:
-                    bss.max_dbm_power = current_dbm
-                    # TODO: Get GPS fix and update max power position
+                if dot11_addrs_info["ta"] != dot11_addrs_info["bssid"]:
+                    # Transmission Address match bssid, so packet came from an AP
+                    # get signal strength and update DB if needed
+                    current_dbm = packet[RadioTap].dBm_AntSignal
+                    if not bss.max_dbm_power or current_dbm > bss.max_dbm_power:
+                        bss.max_dbm_power = current_dbm
+                        # TODO: Get GPS fix and update max power position
 
             if client_mac:
                 try:
