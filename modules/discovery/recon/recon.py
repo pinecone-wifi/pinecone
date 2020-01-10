@@ -277,7 +277,7 @@ class Module(BaseModule):
             ssid = "\"{}\"".format(ssid) if ssid else "<empty>"
             current_dbm = packet[RadioTap].dBm_AntSignal
             self.cmd.pfeedback(
-                "[i] Detected AP (SSID: {}, BSSID: {}, ch: {}, enc: ({}), cipher: ({}), authn: ({}), dBm: ({})).".format(
+                "[i] Detected AP (SSID: {}, BSSID: {}, ch: {}, enc: ({}), cipher: ({}), authn: ({}), dBm: {}).".format(
                     ssid,
                     bss.bssid,
                     bss.channel,
