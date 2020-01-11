@@ -70,7 +70,7 @@ class ExtendedServiceSet(db.Entity):
     """ESS model class:
         Represents a set of BSS group by the same network name (SSID)
     """
-    ssid = Required(str, max_len=32)
+    ssid = Required(str, max_len=32, autostrip=False)
     bssets = Set(BasicServiceSet)
     probes_recvd = Set("ProbeReq")
 
