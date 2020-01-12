@@ -140,12 +140,14 @@ class Module(BaseModule):
         self.connections_cache = set()
 
     @db_session
-    def handle_dot11_header(self, packet: Dot11) -> None:
+    def handle_dot11_header(self, packet: Packet) -> None:
         now = datetime.now()
+        radiotap_pkg = packet[RadioTap]
+        dot11_pkg = packet[Dot11]
 
-        if packet.sprintf("%type%") != "Control":
+        if dot11_pkg.sprintf("%type%") != "Control":
             client_mac = None
-            dot11_addrs_info = get_dot11_addrs_info(packet)
+            dot11_addrs_info = get_dot11_addrs_info(dot11_pkg)
             dot11_ds_bits = dot11_addrs_info["ds_bits"]
 
             if not dot11_ds_bits:  # no to-DS & no from-DS
@@ -176,7 +178,7 @@ class Module(BaseModule):
                 if dot11_addrs_info["ta"] != dot11_addrs_info["bssid"]:
                     # Transmission Address match bssid, so packet came from an AP
                     # get signal strength and update DB if needed
-                    current_dbm = packet[RadioTap].dBm_AntSignal
+                    current_dbm = radiotap_pkg.dBm_AntSignal
                     if current_dbm and (not bss.max_dbm_power or current_dbm > bss.max_dbm_power):
                         bss.max_dbm_power = current_dbm
                         # TODO: Get GPS fix and update max power position
