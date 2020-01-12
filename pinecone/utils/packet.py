@@ -157,15 +157,21 @@ def get_dot11_addrs_info(dot11_packet: Dot11) -> Dict[str, Any]:
 
     if not dot11_addrs_info["ds_bits"]:  # no to-DS & no from-DS
         dot11_addrs_info["da"] = dot11_packet.addr1
+        dot11_addrs_info["ra"] = dot11_packet.addr1
         dot11_addrs_info["sa"] = dot11_packet.addr2
+        dot11_addrs_info["ta"] = dot11_packet.addr2
         dot11_addrs_info["bssid"] = dot11_packet.addr3
     elif dot11_addrs_info["ds_bits"] == {"to-DS"}:
         dot11_addrs_info["bssid"] = dot11_packet.addr1
+        dot11_addrs_info["ra"] = dot11_packet.addr1
         dot11_addrs_info["sa"] = dot11_packet.addr2
+        dot11_addrs_info["ta"] = dot11_packet.addr2
         dot11_addrs_info["da"] = dot11_packet.addr3
     elif dot11_addrs_info["ds_bits"] == {"from-DS"}:
         dot11_addrs_info["da"] = dot11_packet.addr1
+        dot11_addrs_info["ra"] = dot11_packet.addr1
         dot11_addrs_info["bssid"] = dot11_packet.addr2
+        dot11_addrs_info["ta"] = dot11_packet.addr2
         dot11_addrs_info["sa"] = dot11_packet.addr3
     else:  # to-DS & from-DS
         dot11_addrs_info["ra"] = dot11_packet.addr1

@@ -35,6 +35,7 @@ class BasicServiceSet(db.Entity):
     last_seen = Required(datetime)
     ess = Optional("ExtendedServiceSet")
     hides_ssid = Optional(bool)
+    max_dbm_power = Optional(int)
     # band
     # channel_width
     connections = Set("Connection")
@@ -52,7 +53,7 @@ class ExtendedServiceSet(db.Entity):
     """ESS model class:
         Represents a set of BSS group by the same network name (SSID)
     """
-    ssid = PrimaryKey(str, max_len=32)
+    ssid = PrimaryKey(str, max_len=32, autostrip=False)
     bssets = Set(BasicServiceSet)
     probes_recvd = Set("ProbeReq")
 

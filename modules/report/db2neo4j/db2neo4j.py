@@ -3,7 +3,8 @@ import argparse
 from pony.orm import db_session
 from py2neo import Graph, Relationship, Transaction
 
-from pinecone.core.database import to_dict, BasicServiceSet, Client
+from pinecone.core.database import BasicServiceSet, Client
+from pinecone.core.database import to_dict
 from pinecone.core.main import Pinecone
 from pinecone.core.module import BaseModule
 
@@ -24,6 +25,14 @@ class Module(BaseModule):
         default="bolt://neo4j:neo4j@127.0.0.1:7687"
     )
 
+    META["options"].add_argument(
+        "-s", "--skip-empty-clients",
+        help="don't create clients without any connection/probe",
+        default=False,
+        required=False,
+        action="store_true"
+    )
+
     def run(self, args, cmd):
         driver = Graph(args.uri)
 
@@ -32,7 +41,7 @@ class Module(BaseModule):
         tx.commit()
 
         tx = driver.begin()
-        self._create_client_nodes(tx)
+        self._create_client_nodes(tx, args.skip_empty_clients)
         tx.commit()
 
         cmd.pfeedback("[i] Neo4j dump completed.")
@@ -63,8 +72,11 @@ class Module(BaseModule):
                 tx.create(announcement)
 
     @db_session
-    def _create_client_nodes(self, tx: Transaction):
+    def _create_client_nodes(self, tx: Transaction, skipt_empty: bool):
         for client in Client.select():
+            if skipt_empty and not client.connections and not client.probe_reqs:
+                continue
+
             client_data = to_dict(client)
             client_node = tx.evaluate(
                 "MERGE (_:Client {mac:{mac}}) SET _ += {client} RETURN _",
