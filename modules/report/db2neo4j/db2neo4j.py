@@ -40,6 +40,8 @@ class Module(BaseModule):
     )
 
     def run(self, args, cmd):
+        self.cmd = cmd
+
         driver = Graph(args.uri)
 
         tx = driver.begin()
@@ -148,6 +150,11 @@ class Module(BaseModule):
             for probe_ssids, clients in agg_nodes.items():
 
                 group_id = hash(probe_ssids)
+
+                self.cmd.pfeedback("[i] Aggregating {} clients probing for: {}".format(
+                    len(clients),
+                    ", ".join(probe_ssids)
+                ))
 
                 client_data = {client.mac: True for client in clients}
                 client_node = tx.evaluate(
