@@ -166,7 +166,6 @@ class Module(BaseModule):
                 for probe_ssid in probe_ssids:
                     ess_node = tx.evaluate(
                         "MERGE (_:ESS {ssid:{ssid}}) RETURN _",
-                        ess=ess_data,
                         ssid=probe_ssid
                     )
 
