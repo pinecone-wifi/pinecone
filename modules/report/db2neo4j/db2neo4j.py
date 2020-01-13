@@ -145,7 +145,9 @@ class Module(BaseModule):
                     tx.create(connection_rel)
 
                 probes = frozenset(probe.ess for probe in client.probe_reqs)
-                agg_nodes.get(probes, list()).append(client)
+                agg_node = agg_nodes.get(probes, list())
+                agg_node.append(client)
+                agg_nodes[probes] = agg_node
 
             for probe_ssids, clients in agg_nodes.items():
 
