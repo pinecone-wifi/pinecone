@@ -101,10 +101,15 @@ class Client(db.Entity):
         return "MAC: {}".format(self.mac)
 
 
-DB_PATH = str(Path(sys.path[0], "db", "database.sqlite").resolve())
-Path(DB_PATH).parent.mkdir(exist_ok=True)
+def init_database(args):
+    if not args.database:
+        DB_PATH = str(Path(sys.path[0], "db", "database.sqlite").resolve())
+    else:
+        DB_PATH = args.database
 
-print("[i] Database file:", DB_PATH)
+    Path(DB_PATH).parent.mkdir(exist_ok=True)
 
-db.bind(provider="sqlite", filename=DB_PATH, create_db=True)
-db.generate_mapping(create_tables=True)
+    print("[i] Database file:", DB_PATH)
+
+    db.bind(provider="sqlite", filename=DB_PATH, create_db=True)
+    db.generate_mapping(create_tables=True)
