@@ -142,7 +142,7 @@ class Module(BaseModule):
                     connection_rel = Relationship(client_node, "CONNECTED", bss_node, **to_dict(connection))
                     tx.create(connection_rel)
 
-                probes = set(probe.ess for probe in client.probe_reqs)
+                probes = frozenset(probe.ess for probe in client.probe_reqs)
                 agg_nodes.get(probes, list()).append(client)
 
             for probe_ssids, clients in agg_nodes.items():
