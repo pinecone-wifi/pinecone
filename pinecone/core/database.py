@@ -105,7 +105,7 @@ def init_database(args):
     if not args.database:
         DB_PATH = str(Path(sys.path[0], "db", "database.sqlite").resolve())
     else:
-        DB_PATH = args.database
+        DB_PATH = str(Path(args.database).resolve())
 
     Path(DB_PATH).parent.mkdir(exist_ok=True)
 

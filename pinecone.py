@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import argparse
+import argparse, sys
 from pinecone.core.database import init_database
 from pinecone.core.main import Pinecone
 
@@ -12,5 +12,7 @@ if __name__ == "__main__":
 
     init_database(args)
 
+    # Remove arguments prior tu call cmd loop
+    sys.argv = sys.argv[:1]
     Pinecone.reload_modules()
     Pinecone().cmdloop()
