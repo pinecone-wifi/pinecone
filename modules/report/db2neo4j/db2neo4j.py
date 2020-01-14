@@ -120,56 +120,71 @@ class Module(BaseModule):
 
     @db_session
     def _create_client_aggregated_nodes(self, tx: Transaction, skipt_empty: bool):
-            agg_nodes = dict()
+        agg_nodes = dict()
 
-            for client in Client.select():
-                if skipt_empty and not client.connections and not client.probe_reqs:
-                    continue
+        for client in Client.select():
+            if skipt_empty and not client.connections and not client.probe_reqs:
+                continue
 
-                client_data = to_dict(client)
-                client_node = tx.evaluate(
-                    "MERGE (_:Client {mac:{mac}}) SET _ += {client} RETURN _",
-                    client=client_data,
-                    mac=client.mac
-                )
-
-                for connection in client.connections:
-                    bss_data = to_dict(connection.bss)
-                    bss_node = tx.evaluate(
-                        "MERGE (_:BSS {bssid:{bssid}}) SET _ += {bss} RETURN _",
-                        bss=bss_data,
-                        bssid=connection.bss.bssid
-                    )
-
-                    connection_rel = Relationship(client_node, "CONNECTED", bss_node, **to_dict(connection))
-                    tx.create(connection_rel)
-
+            if not client.connections:
+                # Only export single clients when they have connections
                 probes = frozenset(probe.ess.ssid for probe in client.probe_reqs)
                 agg_node = agg_nodes.get(probes, list())
                 agg_node.append(client)
                 agg_nodes[probes] = agg_node
+                continue
 
-            for probe_ssids, clients in agg_nodes.items():
+            client_data = to_dict(client)
+            client_node = tx.evaluate(
+                "MERGE (_:Client {mac:{mac}}) SET _ += {client} RETURN _",
+                client=client_data,
+                mac=client.mac
+            )
 
-                group_id = hash(probe_ssids)
-
-                self.cmd.pfeedback("[i] Aggregating {} clients probing for: {}".format(
-                    len(clients),
-                    ", ".join(probe_ssids)
-                ))
-
-                client_data = {client.mac: True for client in clients}
-                client_node = tx.evaluate(
-                    "MERGE (_:Client {group_id:{group_id}}) SET _ += {client} RETURN _",
-                    client=client_data,
-                    group_id=group_id
+            for connection in client.connections:
+                bss_data = to_dict(connection.bss)
+                bss_node = tx.evaluate(
+                    "MERGE (_:BSS {bssid:{bssid}}) SET _ += {bss} RETURN _",
+                    bss=bss_data,
+                    bssid=connection.bss.bssid
                 )
 
-                for probe_ssid in probe_ssids:
-                    ess_node = tx.evaluate(
-                        "MERGE (_:ESS {ssid:{ssid}}) RETURN _",
-                        ssid=probe_ssid
-                    )
+                connection_rel = Relationship(client_node, "CONNECTED", bss_node, **to_dict(connection))
+                tx.create(connection_rel)
 
-                    announcement = Relationship(client_node, "PROBES", ess_node)
-                    tx.create(announcement)
+            for probe in client.probe_reqs:
+                ess_data = to_dict(probe.ess)
+
+                ess_node = tx.evaluate(
+                    "MERGE (_:ESS {ssid:{ssid}}) SET _ += {ess} RETURN _",
+                    ess=ess_data,
+                    ssid=probe.ess.ssid
+                )
+
+                announcement = Relationship(client_node, "PROBES", ess_node, **to_dict(probe))
+                tx.create(announcement)
+
+        for probe_ssids, clients in agg_nodes.items():
+
+            group_id = hash(probe_ssids)
+
+            self.cmd.pfeedback("[i] Aggregating {} clients probing for: {}".format(
+                len(clients),
+                ", ".join(probe_ssids)
+            ))
+
+            client_data = {client.mac: True for client in clients}
+            client_node = tx.evaluate(
+                "MERGE (_:Client {group_id:{group_id}}) SET _ += {client} RETURN _",
+                client=client_data,
+                group_id=group_id
+            )
+
+            for probe_ssid in probe_ssids:
+                ess_node = tx.evaluate(
+                    "MERGE (_:ESS {ssid:{ssid}}) RETURN _",
+                    ssid=probe_ssid
+                )
+
+                announcement = Relationship(client_node, "PROBES", ess_node)
+                tx.create(announcement)
