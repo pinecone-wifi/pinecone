@@ -88,6 +88,7 @@ class Module(BaseModule):
     def _create_bss_nodes(self, tx: Transaction):
         for bss in BasicServiceSet.select():
             bss_data = to_dict(bss)
+            bss_data.pop("bssid")
             bss_node = tx.evaluate(
                 "MERGE (_:BSS {bssid:{bssid}}) SET _ += {bss} RETURN _",
                 bss=bss_data,
@@ -113,6 +114,7 @@ class Module(BaseModule):
                 continue
 
             client_data = to_dict(client)
+            client_data.pop("mac")
             client_node = tx.evaluate(
                 "MERGE (_:Client {mac:{mac}}) SET _ += {client} RETURN _",
                 client=client_data,
@@ -121,6 +123,7 @@ class Module(BaseModule):
 
             for connection in client.connections:
                 bss_data = to_dict(connection.bss)
+                bss_data.pop("bssid")
                 bss_node = tx.evaluate(
                     "MERGE (_:BSS {bssid:{bssid}}) SET _ += {bss} RETURN _",
                     bss=bss_data,
@@ -159,6 +162,7 @@ class Module(BaseModule):
                 continue
 
             client_data = to_dict(client)
+            client_data.pop("mac")
             client_node = tx.evaluate(
                 "MERGE (_:Client {mac:{mac}}) SET _ += {client} RETURN _",
                 client=client_data,
@@ -167,6 +171,7 @@ class Module(BaseModule):
 
             for connection in client.connections:
                 bss_data = to_dict(connection.bss)
+                bss_data.pop("bssid")
                 bss_node = tx.evaluate(
                     "MERGE (_:BSS {bssid:{bssid}}) SET _ += {bss} RETURN _",
                     bss=bss_data,
