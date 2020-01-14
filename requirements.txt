@@ -14,3 +14,4 @@ urllib3==1.25.7
 neobolt==1.7.16
 neotime==1.7.4
 certifi==2019.11.28
+manuf

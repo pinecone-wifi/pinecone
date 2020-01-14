@@ -1,5 +1,6 @@
 import argparse
 
+from manuf import manuf
 from pony.orm import db_session
 from py2neo import Graph, Relationship, Transaction
 
@@ -38,9 +39,29 @@ class Module(BaseModule):
         required=False,
         action="store_true"
     )
+    META["options"].add_argument(
+        "-m", "--mac-vendor-lookup",
+        help="perform mac vendor lookup for the report",
+        default=False,
+        required=False,
+        action="store_true"
+    )
+
+    cmd = None
+    mac_parser = None
+
+    def _parse_mac(self, addr):
+        if self.mac_parser is None:
+            return addr
+        else:
+            manufacturer = self.mac_parser.get_manuf(addr)
+            return manufacturer + ":" + ":".join(addr.split(":")[3:])
 
     def run(self, args, cmd):
         self.cmd = cmd
+
+        if args.mac_vendor_lookup:
+            self.mac_parser = manuf.MacParser(update=True)
 
         driver = Graph(args.uri)
 
@@ -67,7 +88,7 @@ class Module(BaseModule):
             bss_node = tx.evaluate(
                 "MERGE (_:BSS {bssid:{bssid}}) SET _ += {bss} RETURN _",
                 bss=bss_data,
-                bssid=bss.bssid
+                bssid=self._parse_mac(bss.bssid)
             )
 
             if bss.ess is not None:
@@ -92,7 +113,7 @@ class Module(BaseModule):
             client_node = tx.evaluate(
                 "MERGE (_:Client {mac:{mac}}) SET _ += {client} RETURN _",
                 client=client_data,
-                mac=client.mac
+                mac=self._parse_mac(client.mac)
             )
 
             for connection in client.connections:
@@ -100,7 +121,7 @@ class Module(BaseModule):
                 bss_node = tx.evaluate(
                     "MERGE (_:BSS {bssid:{bssid}}) SET _ += {bss} RETURN _",
                     bss=bss_data,
-                    bssid=connection.bss.bssid
+                    bssid=self._parse_mac(connection.bss.bssid)
                 )
 
                 connection_rel = Relationship(client_node, "CONNECTED", bss_node, **to_dict(connection))
@@ -138,7 +159,7 @@ class Module(BaseModule):
             client_node = tx.evaluate(
                 "MERGE (_:Client {mac:{mac}}) SET _ += {client} RETURN _",
                 client=client_data,
-                mac=client.mac
+                mac=self._parse_mac(client.mac)
             )
 
             for connection in client.connections:
@@ -146,7 +167,7 @@ class Module(BaseModule):
                 bss_node = tx.evaluate(
                     "MERGE (_:BSS {bssid:{bssid}}) SET _ += {bss} RETURN _",
                     bss=bss_data,
-                    bssid=connection.bss.bssid
+                    bssid=self._parse_mac(connection.bss.bssid)
                 )
 
                 connection_rel = Relationship(client_node, "CONNECTED", bss_node, **to_dict(connection))
@@ -173,7 +194,7 @@ class Module(BaseModule):
                 ", ".join(probe_ssids)
             ))
 
-            client_data = {client.mac: True for client in clients}
+            client_data = {self._parse_mac(client.mac): True for client in clients}
             client_node = tx.evaluate(
                 "MERGE (_:Client {group_id:{group_id}}) SET _ += {client} RETURN _",
                 client=client_data,
