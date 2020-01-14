@@ -55,7 +55,10 @@ class Module(BaseModule):
             return addr
         else:
             manufacturer = self.mac_parser.get_manuf(addr)
-            return manufacturer + ":" + ":".join(addr.split(":")[3:])
+            if manufacturer:
+                return manufacturer + ":" + ":".join(addr.split(":")[3:])
+            else:
+                return addr
 
     def run(self, args, cmd):
         self.cmd = cmd
