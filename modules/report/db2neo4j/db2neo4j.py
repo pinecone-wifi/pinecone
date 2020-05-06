@@ -90,7 +90,7 @@ class Module(BaseModule):
             bss_data = to_dict(bss)
             bss_data.pop("bssid")
             bss_node = tx.evaluate(
-                "MERGE (_:BSS {bssid:{bssid}}) SET _ += {bss} RETURN _",
+                "MERGE (_:BSS {bssid:$bssid}) SET _ += $bss RETURN _",
                 bss=bss_data,
                 bssid=self._parse_mac(bss.bssid)
             )
@@ -99,7 +99,7 @@ class Module(BaseModule):
                 ess_data = to_dict(bss.ess)
 
                 ess_node = tx.evaluate(
-                    "MERGE (_:ESS {ssid:{ssid}}) SET _ += {ess} RETURN _",
+                    "MERGE (_:ESS {ssid:$ssid}) SET _ += $ess RETURN _",
                     ess=ess_data,
                     ssid=bss.ess.ssid
                 )
@@ -116,7 +116,7 @@ class Module(BaseModule):
             client_data = to_dict(client)
             client_data.pop("mac")
             client_node = tx.evaluate(
-                "MERGE (_:Client {mac:{mac}}) SET _ += {client} RETURN _",
+                "MERGE (_:Client {mac:$mac}) SET _ += $client RETURN _",
                 client=client_data,
                 mac=self._parse_mac(client.mac)
             )
@@ -125,7 +125,7 @@ class Module(BaseModule):
                 bss_data = to_dict(connection.bss)
                 bss_data.pop("bssid")
                 bss_node = tx.evaluate(
-                    "MERGE (_:BSS {bssid:{bssid}}) SET _ += {bss} RETURN _",
+                    "MERGE (_:BSS {bssid:$bssid}) SET _ += $bss RETURN _",
                     bss=bss_data,
                     bssid=self._parse_mac(connection.bss.bssid)
                 )
@@ -137,7 +137,7 @@ class Module(BaseModule):
                 ess_data = to_dict(probe.ess)
 
                 ess_node = tx.evaluate(
-                    "MERGE (_:ESS {ssid:{ssid}}) SET _ += {ess} RETURN _",
+                    "MERGE (_:ESS {ssid:$ssid}) SET _ += $ess RETURN _",
                     ess=ess_data,
                     ssid=probe.ess.ssid
                 )
@@ -164,7 +164,7 @@ class Module(BaseModule):
             client_data = to_dict(client)
             client_data.pop("mac")
             client_node = tx.evaluate(
-                "MERGE (_:Client {mac:{mac}}) SET _ += {client} RETURN _",
+                "MERGE (_:Client {mac:$mac}) SET _ += $client RETURN _",
                 client=client_data,
                 mac=self._parse_mac(client.mac)
             )
@@ -173,7 +173,7 @@ class Module(BaseModule):
                 bss_data = to_dict(connection.bss)
                 bss_data.pop("bssid")
                 bss_node = tx.evaluate(
-                    "MERGE (_:BSS {bssid:{bssid}}) SET _ += {bss} RETURN _",
+                    "MERGE (_:BSS {bssid:$bssid}) SET _ += $bss RETURN _",
                     bss=bss_data,
                     bssid=self._parse_mac(connection.bss.bssid)
                 )
@@ -185,7 +185,7 @@ class Module(BaseModule):
                 ess_data = to_dict(probe.ess)
 
                 ess_node = tx.evaluate(
-                    "MERGE (_:ESS {ssid:{ssid}}) SET _ += {ess} RETURN _",
+                    "MERGE (_:ESS {ssid:$ssid}) SET _ += $ess RETURN _",
                     ess=ess_data,
                     ssid=probe.ess.ssid
                 )
@@ -204,14 +204,14 @@ class Module(BaseModule):
 
             client_data = {self._parse_mac(client.mac): True for client in clients}
             client_node = tx.evaluate(
-                "MERGE (_:Client {group_id:{group_id}}) SET _ += {client} RETURN _",
+                "MERGE (_:Client {group_id:$group_id}) SET _ += $client RETURN _",
                 client=client_data,
                 group_id=group_id
             )
 
             for probe_ssid in probe_ssids:
                 ess_node = tx.evaluate(
-                    "MERGE (_:ESS {ssid:{ssid}}) RETURN _",
+                    "MERGE (_:ESS {ssid:$ssid}) RETURN _",
                     ssid=probe_ssid
                 )
 
