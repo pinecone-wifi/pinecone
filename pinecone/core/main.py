@@ -2,10 +2,11 @@ import argparse
 import importlib.util
 import re
 import sys
+import shlex
 from typing import Optional
 
-import cmd2
-from cmd2 import Cmd2ArgumentParser
+from prompt_toolkit import PromptSession, print_formatted_text
+from prompt_toolkit.formatted_text import FormattedText
 from pathlib2 import Path
 
 from pinecone.core.database import Client, db_session, BasicServiceSet, ExtendedServiceSet
@@ -13,7 +14,7 @@ from pinecone.core.database import Client, db_session, BasicServiceSet, Extended
 TMP_FOLDER_PATH: Path = Path(sys.path[0], "tmp").resolve()
 
 
-class Pinecone(cmd2.Cmd):
+class Pinecone():
     DEFAULT_PROMPT = "pinecone > "
     PROMPT_FORMAT = "pcn {}({}) > "
 
@@ -22,14 +23,33 @@ class Pinecone(cmd2.Cmd):
     def __init__(self):
         self.prompt = self.DEFAULT_PROMPT
         self.current_module = None
+        self.commands = {
+            "use": self.do_use,
+            "exit": self.do_exit
+        }
 
         TMP_FOLDER_PATH.mkdir(parents=True, exist_ok=True)
 
-        super().__init__(persistent_history_file=str(Path(TMP_FOLDER_PATH, "pinecone_history")),
-                         persistent_history_length=500)
+    def cmdloop(self):
+        session = PromptSession()
+        text = None
+
+        while True:
+            try:
+                text = session.prompt(self.prompt)
+
+                split_text = shlex.split(text)
+                command = split_text[0]
+
+                if command in self.commands:
+                    self.commands[command](split_text[1:] if len(split_text) > 1 else [])
+            except KeyboardInterrupt:
+                continue
+            except EOFError:
+                break
 
     @classmethod
-    def reload_modules(cls) -> None:
+    def load_modules(cls) -> None:
         cls.modules.clear()
         modules_it = Path(sys.path[0], "modules").rglob("*.py")
 
@@ -44,110 +64,39 @@ class Pinecone(cmd2.Cmd):
                 module_class = module.Module
                 cls.modules[module_class.META["id"]] = module_class()
 
-    use_parser = Cmd2ArgumentParser()
-    use_module_action = use_parser.add_argument("module", choices=modules, type=str, help="module ID")
+    use_parser = argparse.ArgumentParser()
+    use_parser.add_argument("module", choices=modules, type=str, help="module ID")
 
-    @cmd2.with_argparser(use_parser)
-    def do_use(self, args: argparse.Namespace) -> None:
+    def do_use(self, args: str) -> None:
         """Interact with the specified module."""
+
+        args = self.use_parser.parse_args(args)
 
         if args.module in self.modules:
             self.current_module = self.modules[args.module]
-            type(self).do_run = cmd2.with_argparser(self.current_module.META["options"])(type(self)._do_run)
+            self.run_parser = self.current_module.META["options"]
             self.current_module.META["options"].prog = "run"
+            self.commands["run"] = self.do_run
 
             if args.module.startswith("scripts/"):
                 self.prompt = self.PROMPT_FORMAT.format("script", args.module.replace("scripts/", ""))
             else:
                 self.prompt = self.PROMPT_FORMAT.format("module", args.module)
 
-    """
-    session_actions = {'checkout', 'delete', 'list', 'info'}
-    session_parser = Cmd2ArgumentParser()
-    session_module_action = session_parser.add_argument(
-        "action",
-        type=str,
-        help="session action",
-        choices=session_actions,
-    )
-    session_parser.add_argument(
-        "session",
-        type=str,
-        nargs="?",
-        help="Session name can only contain letters numbers and underscores (my_session_01)",
-        default='default'
-    )
+    run_parser = None
 
-    @cmd2.with_argparser(session_parser)
-    @db_session
-    def do_session(self, args: argparse.Namespace) -> None:
-        '''Interact with sessions.'''
-
-        target_session = args.session
-        if not re.match(r"\w+[\w_]*", target_session):
-            self.perror("Invalid session name")
-            return
-
-        if args.action == "checkout":
-            self.session = target_session
-        elif args.action == "delete":
-            curr_session = self.session
-            target_session = curr_session if target_session == 'default' else target_session
-
-            deleted_session_name = target_session
-            if deleted_session_name == curr_session:
-                # Switch to default session prior to session delete
-                deleted_session_name = curr_session
-                self.session = "default"
-
-            try:
-                Session[deleted_session_name].delete()
-            except Exception as e:
-                self.perror("Error deleting session {}".format(deleted_session_name), e)
-
-        elif args.action == "list":
-            self.pfeedback("{:25}\t{}".format("Session Name", "Creation Date"))
-            for session in Session.select():
-                self.pfeedback(
-                    "{:25}\t{}".format(
-                        session.name,
-                        session.creation_date
-                    )
-                )
-
-        elif args.action == "info":
-            curr_session = self.session
-            target_session = curr_session if target_session == 'default' else target_session
-
-            try:
-                session = Session[target_session]
-                self.pfeedback(
-                    "Name: {}\nCreation Date: {}\n#Clients: {}\n#BSS: {}\n#ESS: {}".format(
-                        session.name,
-                        session.creation_date,
-                        session.clients.count(),
-                        session.bsss.count(),
-                        session.esss.count()
-                    )
-                )
-            except ObjectNotFound:
-                self.pfeedback("ERROR: Session not found in database")
-    """
-
-    def _do_run(self, args: argparse.Namespace) -> None:
-        self.current_module.run(args, self)
-
-    do_run = _do_run
+    def do_run(self, args: str) -> None:
+        self.current_module.run(self.run_parser.parse_args(args), self)
 
     def do_stop(self, _: argparse.Namespace = None) -> None:
         self.current_module.stop(self)
 
     def do_back(self, _: argparse.Namespace = None) -> None:
-        type(self).do_run = type(self)._do_run
+        type(self).do_run = type(self).do_run
         self.prompt = self.DEFAULT_PROMPT
 
     def do_exit(self, _):
-        return self.do_quit(_)
+        raise EOFError()
 
     @db_session
     def select_bss(self, ssid: Optional[str] = None, bssid: Optional[str] = None,
@@ -176,3 +125,12 @@ class Pinecone(cmd2.Cmd):
 
         if bssid:
             return BasicServiceSet.get(bssid=bssid)
+
+    def poutput(self, msg: str):
+        print(msg)
+
+    def pfeedback(self, msg: str):
+        print(msg)
+
+    def perror(self, msg: str):
+        print_formatted_text(FormattedText((("ansired", msg),)))
