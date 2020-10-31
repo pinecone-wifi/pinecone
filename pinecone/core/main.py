@@ -3,7 +3,7 @@ import importlib.util
 import re
 import sys
 import shlex
-from typing import Optional, Iterable
+from typing import Optional, Iterable, List
 
 from prompt_toolkit import PromptSession, print_formatted_text
 from prompt_toolkit.formatted_text import FormattedText
@@ -34,21 +34,22 @@ class Pinecone():
 
         TMP_FOLDER_PATH.mkdir(parents=True, exist_ok=True)
 
+    def process_cmd(self, text: str):
+        if not text.strip():
+            return
+
+        split_text = shlex.split(text)
+        command = split_text[0]
+
+        if command in self.commands:
+            self.commands[command](split_text[1:] if len(split_text) > 1 else [])
+
     def cmdloop(self):
         session = PromptSession()
 
         while True:
             try:
-                text = session.prompt(self.prompt)
-
-                if not text:
-                    continue
-
-                split_text = shlex.split(text)
-                command = split_text[0]
-
-                if command in self.commands:
-                    self.commands[command](split_text[1:] if len(split_text) > 1 else [])
+                self.process_cmd(session.prompt(self.prompt))
             except KeyboardInterrupt:
                 continue
             except EOFError:
@@ -73,7 +74,7 @@ class Pinecone():
     use_parser = argparse.ArgumentParser()
     use_parser.add_argument("module", choices=modules, type=str, help="module ID")
 
-    def do_use(self, args: str) -> None:
+    def do_use(self, args: List[str]) -> None:
         """Interact with the specified module."""
 
         try:
@@ -100,7 +101,7 @@ class Pinecone():
 
     run_parser = None
 
-    def do_run(self, args: str) -> None:
+    def do_run(self, args: List[str]) -> None:
         try:
             args = self.run_parser.parse_args(args)
         except SystemExit:
@@ -112,9 +113,11 @@ class Pinecone():
         self.current_module.stop(self)
 
     def do_back(self, _: argparse.Namespace = None) -> None:
-        del self.commands["run"]
-        del self.commands["stop"]
-        del self.commands["back"]
+        if "back" in self.commands:
+            del self.commands["run"]
+            del self.commands["stop"]
+            del self.commands["back"]
+
         self.prompt = self.DEFAULT_PROMPT
 
     def do_exit(self, _):
@@ -167,3 +170,8 @@ class Pinecone():
             text=msg,
             values=[(choice, choice) for choice in choices_lst]
         ).run()
+
+    def do_run_script(self, script_path: Path):
+        with open(script_path, "r") as script:
+            for line in script:
+                self.process_cmd(line)
