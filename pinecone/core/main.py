@@ -7,6 +7,8 @@ from typing import Optional, Iterable, List
 
 from prompt_toolkit import PromptSession, print_formatted_text
 from prompt_toolkit.formatted_text import FormattedText
+from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
+from prompt_toolkit.completion import NestedCompleter
 from prompt_toolkit.shortcuts import radiolist_dialog
 from pathlib2 import Path
 
@@ -49,7 +51,9 @@ class Pinecone():
 
         while True:
             try:
-                self.process_cmd(session.prompt(self.prompt))
+                commands_completer = NestedCompleter({cmd: None for cmd in self.commands})
+                self.process_cmd(session.prompt(self.prompt, auto_suggest=AutoSuggestFromHistory(),
+                                                completer=commands_completer))
             except KeyboardInterrupt:
                 continue
             except EOFError:
