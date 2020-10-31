@@ -3,10 +3,11 @@ import importlib.util
 import re
 import sys
 import shlex
-from typing import Optional
+from typing import Optional, Iterable
 
 from prompt_toolkit import PromptSession, print_formatted_text
 from prompt_toolkit.formatted_text import FormattedText
+from prompt_toolkit.shortcuts import radiolist_dialog
 from pathlib2 import Path
 
 from pinecone.core.database import Client, db_session, BasicServiceSet, ExtendedServiceSet
@@ -15,9 +16,12 @@ TMP_FOLDER_PATH: Path = Path(sys.path[0], "tmp").resolve()
 
 
 class Pinecone():
-    DEFAULT_PROMPT = "pinecone > "
-    PROMPT_FORMAT = "pcn {}({}) > "
-
+    DEFAULT_PROMPT = FormattedText((("underline", "pinecone"),
+                                   ("", " > ")))
+    PROMPT_FORMAT = FormattedText((("underline", "pcn"),
+                                   ("", " {}("),
+                                   ("bold ansibrightred", "{}"),
+                                   ("", ") > ")))
     modules = {}
 
     def __init__(self):
@@ -32,11 +36,13 @@ class Pinecone():
 
     def cmdloop(self):
         session = PromptSession()
-        text = None
 
         while True:
             try:
                 text = session.prompt(self.prompt)
+
+                if not text:
+                    continue
 
                 split_text = shlex.split(text)
                 command = split_text[0]
@@ -70,29 +76,45 @@ class Pinecone():
     def do_use(self, args: str) -> None:
         """Interact with the specified module."""
 
-        args = self.use_parser.parse_args(args)
+        try:
+            args = self.use_parser.parse_args(args)
+        except SystemExit:
+            return
 
         if args.module in self.modules:
             self.current_module = self.modules[args.module]
             self.run_parser = self.current_module.META["options"]
             self.current_module.META["options"].prog = "run"
             self.commands["run"] = self.do_run
+            self.commands["stop"] = self.do_stop
+            self.commands["back"] = self.do_back
 
             if args.module.startswith("scripts/"):
-                self.prompt = self.PROMPT_FORMAT.format("script", args.module.replace("scripts/", ""))
+                self.prompt = FormattedText(self.PROMPT_FORMAT)
+                self.prompt[1] = (self.prompt[1][0], self.prompt[1][1].format("script"))
+                self.prompt[2] = (self.prompt[2][0], args.module.replace("scripts/", ""))
             else:
-                self.prompt = self.PROMPT_FORMAT.format("module", args.module)
+                self.prompt = FormattedText(self.PROMPT_FORMAT)
+                self.prompt[1] = (self.prompt[1][0], self.prompt[1][1].format("module"))
+                self.prompt[2] = (self.prompt[2][0], args.module)
 
     run_parser = None
 
     def do_run(self, args: str) -> None:
-        self.current_module.run(self.run_parser.parse_args(args), self)
+        try:
+            args = self.run_parser.parse_args(args)
+        except SystemExit:
+            return
+
+        self.current_module.run(args, self)
 
     def do_stop(self, _: argparse.Namespace = None) -> None:
         self.current_module.stop(self)
 
     def do_back(self, _: argparse.Namespace = None) -> None:
-        type(self).do_run = type(self).do_run
+        del self.commands["run"]
+        del self.commands["stop"]
+        del self.commands["back"]
         self.prompt = self.DEFAULT_PROMPT
 
     def do_exit(self, _):
@@ -126,11 +148,22 @@ class Pinecone():
         if bssid:
             return BasicServiceSet.get(bssid=bssid)
 
-    def poutput(self, msg: str):
+    @classmethod
+    def poutput(cls, msg: str):
         print(msg)
 
-    def pfeedback(self, msg: str):
+    @classmethod
+    def pfeedback(cls, msg: str):
         print(msg)
 
-    def perror(self, msg: str):
+    @classmethod
+    def perror(cls, msg: str):
         print_formatted_text(FormattedText((("ansired", msg),)))
+
+    @classmethod
+    def select(cls, choices_lst: Iterable, msg: str):
+        return radiolist_dialog(
+            title="Selection dialog",
+            text=msg,
+            values=[(choice, choice) for choice in choices_lst]
+        ).run()
