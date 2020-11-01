@@ -51,7 +51,9 @@ class Pinecone():
 
         while True:
             try:
-                commands_completer = NestedCompleter({cmd: None for cmd in self.commands})
+                commands_completer_dict = {cmd: None for cmd in self.commands}
+                commands_completer_dict["use"] = {module: None for module in self.modules}
+                commands_completer = NestedCompleter.from_nested_dict(commands_completer_dict)
                 self.process_cmd(session.prompt(self.prompt, auto_suggest=AutoSuggestFromHistory(),
                                                 completer=commands_completer))
             except KeyboardInterrupt:
