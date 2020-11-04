@@ -6,11 +6,12 @@ import shlex
 from typing import Optional, Iterable, List
 
 from prompt_toolkit import PromptSession, print_formatted_text
-from prompt_toolkit.formatted_text import FormattedText
+from prompt_toolkit.formatted_text import HTML
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.completion import NestedCompleter
 from prompt_toolkit.shortcuts import radiolist_dialog
 from pathlib2 import Path
+from sortedcontainers import SortedDict
 
 from pinecone.core.database import Client, db_session, BasicServiceSet, ExtendedServiceSet
 
@@ -18,21 +19,17 @@ TMP_FOLDER_PATH: Path = Path(sys.path[0], "tmp").resolve()
 
 
 class Pinecone():
-    DEFAULT_PROMPT = FormattedText((("underline", "pinecone"),
-                                   ("", " > ")))
-    PROMPT_FORMAT = FormattedText((("underline", "pcn"),
-                                   ("", " {}("),
-                                   ("bold ansibrightred", "{}"),
-                                   ("", ") > ")))
-    modules = {}
+    DEFAULT_PROMPT = HTML("<underline>pinecone</underline> > ")
+    PROMPT_FORMAT = "<underline>pcn</underline> {}(<b fg='ansibrightred'>{}</b>) > "
+    modules = SortedDict()
 
     def __init__(self):
         self.prompt = self.DEFAULT_PROMPT
         self.current_module = None
-        self.commands = {
+        self.commands = SortedDict({
             "use": self.do_use,
             "exit": self.do_exit
-        }
+        })
 
         TMP_FOLDER_PATH.mkdir(parents=True, exist_ok=True)
 
@@ -97,13 +94,9 @@ class Pinecone():
             self.commands["back"] = self.do_back
 
             if args.module.startswith("scripts/"):
-                self.prompt = FormattedText(self.PROMPT_FORMAT)
-                self.prompt[1] = (self.prompt[1][0], self.prompt[1][1].format("script"))
-                self.prompt[2] = (self.prompt[2][0], args.module.replace("scripts/", ""))
+                self.prompt = HTML(self.PROMPT_FORMAT.format("script", args.module.replace("scripts/", "")))
             else:
-                self.prompt = FormattedText(self.PROMPT_FORMAT)
-                self.prompt[1] = (self.prompt[1][0], self.prompt[1][1].format("module"))
-                self.prompt[2] = (self.prompt[2][0], args.module)
+                self.prompt = HTML(self.PROMPT_FORMAT.format("module", args.module))
 
     run_parser = None
 

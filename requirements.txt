@@ -15,3 +15,4 @@ neobolt==1.7.16
 neotime==1.7.4
 certifi==2019.11.28
 git+https://github.com/pinecone-wifi/manuf.git@master#egg=manuf
+sortedcontainers==2.2.2
