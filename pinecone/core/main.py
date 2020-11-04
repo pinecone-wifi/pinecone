@@ -160,7 +160,7 @@ class Pinecone():
 
     @classmethod
     def perror(cls, msg: str):
-        print_formatted_text(FormattedText((("ansired", msg),)))
+        print_formatted_text(HTML(f"<ansired>{msg}</ansired>"))
 
     @classmethod
     def select(cls, choices_lst: Iterable, msg: str):
