@@ -1,4 +1,5 @@
 import argparse
+import types
 
 from pathlib2 import Path
 from pony.orm import *
@@ -11,6 +12,7 @@ from pinecone.utils.interface import set_monitor_mode, check_chset
 from pinecone.utils.packet import compare_macs, BROADCAST_MAC, get_dot11_addrs_info, WPA_key, \
     get_flags_set
 from pinecone.utils.template import to_args_str
+from pinecone.core.options import Option, OptionDict
 
 
 class Module(BaseScript):
@@ -22,19 +24,19 @@ class Module(BaseScript):
         "description": "Captures WPA handshakes by deauthenticating clients and then monitoring the handshake. If some "
                        "required options for the attack (such as --bssid or --channel) are omitted, they are obtained, "
                        "when possible, from the recon db (use the module discovery/recon to populate it).",
-        "options": argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter),
+        "options": OptionDict(),
         "depends": {"attack/deauth"}
     }
-    META["options"].add_argument("-i", "--iface", help="monitor mode capable WLAN interface.", default="wlan0",
-                                 metavar="INTERFACE")
-    META["options"].add_argument("-b", "--bssid", help="BSSID of target AP")
-    META["options"].add_argument("-s", "--ssid", help="SSID of target AP")
-    META["options"].add_argument("-c", "--client", help="MAC of target client", default=BROADCAST_MAC)
-    META["options"].add_argument("--channel", help="channel of target AP, if 0 or negative the WLAN interface (option "
-                                                   "--iface) current channel will be used.", type=int)
-    META["options"].add_argument("--no-deauth", help="do not deauth client(s) from AP", action="store_true")
-    META["options"].add_argument("--sniff-time", help="time (in seconds) that the interface will be monitoring",
-                                 default=10, type=int)
+    META["options"].add(Option("INTERFACE", "wlan0", True, "monitor mode capable WLAN interface.", str))
+    META["options"].add(Option("BSSID", required=False, description="BSSID of target AP.",
+                               opt_type=str))
+    META["options"].add(Option("SSID", required=False, description="SSID of target AP.",
+                               opt_type=str))
+    META["options"].add(Option("CLIENT_MAC", BROADCAST_MAC, False, "MAC of target client.", str))
+    META["options"].add(Option("CHANNEL", 0, False, "channel of target AP, if 0 or negative the WLAN interface (option "
+                                                    "--iface) current channel will be used.", int))
+    META["options"].add(Option("NO_DEAUTH", False, False, "do not deauth client(s) from AP", bool))
+    META["options"].add(Option("SNIFF_TIME", 10, False, "time (in seconds) that the interface will be monitoring", int))
 
     START_SCRIPT_TEMPLATE_PATH = Path(Path(__file__).parent, "start_wpa_handshake_template").resolve()  # type: Path
     START_SCRIPT_FILENAME = "start_wpa_handshake_script"
@@ -48,7 +50,16 @@ class Module(BaseScript):
 
         super().__init__()
 
-    def run(self, args, cmd):
+    def run(self, opts, cmd):
+        args = types.SimpleNamespace()
+        args.ssid = opts["SSID"].value
+        args.bssid = opts["BSSID"].value
+        args.client = opts["CLIENT_MAC"].value
+        args.channel = opts["CHANNEL"].value
+        args.iface = opts["INTERFACE"].value
+        args.no_deauth = opts["NO_DEAUTH"].value
+        args.sniff_time = opts["SNIFF_TIME"].value
+
         with db_session:
             bss = cmd.select_bss(args.ssid, args.bssid, args.client)
 
