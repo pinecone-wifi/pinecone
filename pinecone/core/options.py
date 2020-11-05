@@ -1,7 +1,10 @@
 from __future__ import annotations
+
+import re
 from itertools import chain
 from typing import Iterable, Any, Sequence, Optional, NoReturn, Text
 from argparse import ArgumentParser
+from types import SimpleNamespace
 
 from sortedcontainers import SortedDict
 
@@ -15,7 +18,7 @@ class OptionsArgumentParser(ArgumentParser):
 
 
 class Option:
-    def __init__(self, name="", value=None, required=False, description: Optional[str] = None, opt_type=None,
+    def __init__(self, name="", value=None, required=False, description: Optional[str] = None, opt_type=str,
                  choices: Iterable = None, is_list=False):
         self.name = name
         self.value: Any = value
@@ -32,7 +35,14 @@ class Option:
         return "yes" if self.required else "no"
 
     def value_to_str(self) -> str:
-        return " ".join(str(v) for v in self.value) if type(self.value) == list else str(self.value)
+        def str_none_empty(string: Optional[str]) -> str:
+            return "" if string is None else str(string)
+
+        return " ".join(str_none_empty(v) for v in self.value) if type(self.value) == list else \
+            str_none_empty(self.value)
+
+    def name_to_attr(self) -> str:
+        return re.sub("([a-z])([A-Z])", r"\1_\2", self.name).lower()
 
     def __str__(self):
         return f"{self.name}  {self.value_to_str()}  {self.required_to_str()}  {self.description}"
@@ -42,6 +52,17 @@ class Option:
 class OptionDict(SortedDict):
     def add(self, option: Option):
         self[option.name] = option
+
+    def get_val(self, key: str) -> Any:
+        return self[key].value
+
+    def get_opts_namespace(self) -> Any:
+        opts_namespace = SimpleNamespace()
+
+        for opt in self.values():
+            setattr(opts_namespace, opt.name_to_attr(), opt.value)
+
+        return opts_namespace
 
     def __setitem__(self, key: str, value: Option):
         super().__setitem__(key.casefold(), value)

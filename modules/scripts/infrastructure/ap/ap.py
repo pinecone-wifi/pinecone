@@ -9,8 +9,7 @@ from pyric import pyw
 
 from pinecone.core.database import ExtendedServiceSet
 from pinecone.core.script import BaseScript
-from pinecone.utils.template import to_args_str
-
+from pinecone.utils.template import opts_to_str
 
 class Module(BaseScript):
     META = {
@@ -67,7 +66,7 @@ class Module(BaseScript):
     def run(self, args, cmd):
         script_args = argparse.Namespace()
 
-        script_args.hostapd_wpe_args = to_args_str({
+        script_args.hostapd_wpe_args = opts_to_str({
             "iface": args.iface,
             "channel": args.channel,
             "encryption": args.encryption,
@@ -78,7 +77,7 @@ class Module(BaseScript):
             "mac-acl": args.mac_acl
         })
 
-        script_args.dnsmasq_args = to_args_str({
+        script_args.dnsmasq_args = opts_to_str({
             "start-addr": args.dhcp_start_addr,
             "end-addr": args.dhcp_end_addr,
             "lease-time": args.dhcp_lease_time,
@@ -97,7 +96,7 @@ class Module(BaseScript):
             with db_session:
                 try:
                     for bss in ExtendedServiceSet[args.ssid].bssets.select(lambda bss: bss.channel == args.channel):
-                        script_args.deauth_args_lst.append(to_args_str({
+                        script_args.deauth_args_lst.append(opts_to_str({
                             "iface": additional_mon_iface_name,
                             "bssid": bss.bssid,
                             "channel": 0,

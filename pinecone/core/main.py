@@ -1,9 +1,9 @@
-import argparse
 import importlib.util
 import re
 import sys
 import shlex
-from typing import Optional, Iterable, List, Sequence
+import textwrap
+from typing import Optional, Iterable, Sequence
 
 from prompt_toolkit import PromptSession, print_formatted_text
 from prompt_toolkit.formatted_text import HTML
@@ -14,7 +14,6 @@ from pathlib2 import Path
 from sortedcontainers import SortedDict
 
 from pinecone.core.database import Client, db_session, BasicServiceSet, ExtendedServiceSet
-from pinecone.core.options import Option
 
 TMP_FOLDER_PATH: Path = Path(sys.path[0], "tmp").resolve()
 
@@ -26,6 +25,7 @@ class Pinecone():
 
     def __init__(self):
         self.prompt = self.DEFAULT_PROMPT
+        self.current_module_name = None
         self.current_module = None
         self.commands = SortedDict({
             "use": self.do_use,
@@ -80,19 +80,14 @@ class Pinecone():
                 module_class = module.Module
                 cls.modules[module_class.META["id"]] = module_class()
 
-    use_parser = argparse.ArgumentParser()
-    use_parser.add_argument("module", choices=modules, type=str, help="module ID")
-
-    def do_use(self, args: List[str]) -> None:
+    def do_use(self, args: Sequence[str]) -> None:
         """Interact with the specified module."""
 
-        try:
-            args = self.use_parser.parse_args(args)
-        except SystemExit:
-            return
+        if len(args) >= 1 and args[0] in self.modules:
+            module = args[0]
 
-        if args.module in self.modules:
-            self.current_module = self.modules[args.module]
+            self.current_module = self.modules[module]
+            self.current_module_name = module
             self.run_parser = self.current_module.META["options"]
             self.current_module.META["options"].prog = "run"
             self.commands["run"] = self.do_run
@@ -101,30 +96,31 @@ class Pinecone():
             self.commands["set"] = self.do_set
             self.commands["show"] = self.do_show
 
-            if args.module.startswith("scripts/"):
-                self.prompt = HTML(self.PROMPT_FORMAT.format("script", args.module.replace("scripts/", "")))
+            if module.startswith("scripts/"):
+                self.prompt = HTML(self.PROMPT_FORMAT.format("script", module.replace("scripts/", "")))
             else:
-                self.prompt = HTML(self.PROMPT_FORMAT.format("module", args.module))
+                self.prompt = HTML(self.PROMPT_FORMAT.format("module", module))
 
     run_parser = None
 
-    def do_run(self, args: Sequence[str]) -> None:
+    def do_run(self, _) -> None:
         self.current_module.run(self.current_module.META["options"], self)
 
-    def do_stop(self, _: argparse.Namespace = None) -> None:
+    def do_stop(self, _) -> None:
         self.current_module.stop(self)
 
-    def do_back(self, _: argparse.Namespace = None) -> None:
-        self.current_module = None
+    def do_back(self, _=None) -> None:
+        if self.current_module:
+            self.current_module = None
+            self.current_module_name = None
 
-        if "back" in self.commands:
             del self.commands["run"]
             del self.commands["stop"]
             del self.commands["back"]
             del self.commands["set"]
             del self.commands["show"]
 
-        self.prompt = self.DEFAULT_PROMPT
+            self.prompt = self.DEFAULT_PROMPT
 
     def do_exit(self, _):
         raise EOFError()
@@ -143,7 +139,8 @@ class Pinecone():
             self.poutput(f"{opt_name} => {self.current_module.META['options'][opt_name].value}")
 
     def do_show(self, _):
-        self.poutput(self.current_module.META["options"])
+        print(f"\nModule options ({self.current_module_name}):\n\n"
+              f"{textwrap.indent(str(self.current_module.META['options']), ' '*3)}\n")
 
     @db_session
     def select_bss(self, ssid: Optional[str] = None, bssid: Optional[str] = None,

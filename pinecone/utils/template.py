@@ -1,21 +1,13 @@
-from typing import Union, Any, Dict
+from typing import Union, Any
 
 from jinja2 import Template
 from pathlib2 import Path
 
+from pinecone.core.options import OptionDict
 
-def to_args_str(args: Dict[str, Any]) -> str:
-    args_lst = []
 
-    for arg, value in args.items():
-        if value is not None:
-            if type(value) == bool:
-                if value:
-                    args_lst.append("--{}".format(arg))
-            else:
-                args_lst.append('--{} "{}"'.format(arg, value))
-
-    return " ".join(args_lst)
+def opts_to_str(opts: OptionDict) -> str:
+    return "\n".join(f"set {opt.name} {opt.value}" for opt in opts.values())
 
 
 def render_template(template_path: Union[Path, str], rendered_path: Union[Path, str], render_args: Any) -> None:

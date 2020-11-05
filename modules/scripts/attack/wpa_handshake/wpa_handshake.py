@@ -1,6 +1,4 @@
-import argparse
-import types
-
+from types import SimpleNamespace
 from pathlib2 import Path
 from pony.orm import *
 from pyric import pyw
@@ -11,7 +9,7 @@ from pinecone.core.script import BaseScript
 from pinecone.utils.interface import set_monitor_mode, check_chset
 from pinecone.utils.packet import compare_macs, BROADCAST_MAC, get_dot11_addrs_info, WPA_key, \
     get_flags_set
-from pinecone.utils.template import to_args_str
+from pinecone.utils.template import opts_to_str
 from pinecone.core.options import Option, OptionDict
 
 
@@ -27,14 +25,12 @@ class Module(BaseScript):
         "options": OptionDict(),
         "depends": {"attack/deauth"}
     }
-    META["options"].add(Option("INTERFACE", "wlan0", True, "monitor mode capable WLAN interface.", str))
-    META["options"].add(Option("BSSID", required=False, description="BSSID of target AP.",
-                               opt_type=str))
-    META["options"].add(Option("SSID", required=False, description="SSID of target AP.",
-                               opt_type=str))
-    META["options"].add(Option("CLIENT_MAC", BROADCAST_MAC, False, "MAC of target client.", str))
-    META["options"].add(Option("CHANNEL", 0, False, "channel of target AP, if 0 or negative the WLAN interface (option "
-                                                    "--iface) current channel will be used.", int))
+    META["options"].add(Option("INTERFACE", "wlan0", True, "monitor mode capable WLAN interface."))
+    META["options"].add(Option("BSSID", description="BSSID of target AP."))
+    META["options"].add(Option("SSID", description="SSID of target AP."))
+    META["options"].add(Option("CLIENT", BROADCAST_MAC, description="MAC of target client."))
+    META["options"].add(Option("CHANNEL", description="channel of target AP, if 0 or negative the WLAN interface "
+                                                      "(option --iface) current channel will be used.", opt_type=int))
     META["options"].add(Option("NO_DEAUTH", False, False, "do not deauth client(s) from AP", bool))
     META["options"].add(Option("SNIFF_TIME", 10, False, "time (in seconds) that the interface will be monitoring", int))
 
@@ -45,74 +41,67 @@ class Module(BaseScript):
         self.handshakes_cache = None
         self.complete_handshake = False
         self.ap_beacon = None
-        self.args = None
+        self.opts = None
         self.cmd = None
 
         super().__init__()
 
     def run(self, opts, cmd):
-        args = types.SimpleNamespace()
-        args.ssid = opts["SSID"].value
-        args.bssid = opts["BSSID"].value
-        args.client = opts["CLIENT_MAC"].value
-        args.channel = opts["CHANNEL"].value
-        args.iface = opts["INTERFACE"].value
-        args.no_deauth = opts["NO_DEAUTH"].value
-        args.sniff_time = opts["SNIFF_TIME"].value
+        opts = opts.get_opts_namespace()
 
         with db_session:
-            bss = cmd.select_bss(args.ssid, args.bssid, args.client)
+            bss = cmd.select_bss(opts.ssid, opts.bssid, opts.client)
 
             if bss:
                 if not ("WPA" in bss.encryption_types and "PSK" in bss.authn_types):
                     cmd.perror("[!] Selected AP encryption mode is not WPA[2]-PSK.")
 
-                if not args.bssid:
-                    args.bssid = bss.bssid
+                if not opts.bssid:
+                    opts.bssid = bss.bssid
 
-                if args.channel is None:
-                    args.channel = bss.channel
+                if opts.channel is None:
+                    opts.channel = bss.channel
 
-        if args.bssid is None:
+        if opts.bssid is None:
             cmd.perror("BSSID is missing, and couldn't be obtained from the recon db.")
-        elif args.channel is None:
+        elif opts.channel is None:
             cmd.perror("Channel is missing, and couldn't be obtained from the recon db.")
         else:
-            interface = set_monitor_mode(args.iface)
+            interface = set_monitor_mode(opts.interface)
 
-            if args.channel > 0:
-                check_chset(interface, args.channel)
+            if opts.channel > 0:
+                check_chset(interface, opts.channel)
             else:
-                args.channel = pyw.chget(interface)
+                opts.channel = pyw.chget(interface)
 
-            args.all_clients = compare_macs(args.client, BROADCAST_MAC)
+            opts.all_clients = compare_macs(opts.client, BROADCAST_MAC)
             self.clear_caches()
-            self.args = args
+            self.opts = opts
             self.cmd = cmd
 
-            if not args.no_deauth:
-                script_args = argparse.Namespace()
-                script_args.deauth_args = to_args_str({
-                    "iface": args.iface,
-                    "bssid": args.bssid,
-                    "channel": 0,
-                    "client": args.client
-                    # "num-frames": 1
-                })
+            if not opts.no_deauth:
+                script_opts = OptionDict()
+                script_opts.add(Option("INTERFACE", opts.interface))
+                script_opts.add(Option("BSSID", opts.bssid))
+                script_opts.add(Option("CHANNEL", opts.channel))
+                script_opts.add(Option("CLIENT", opts.client))
+
+                script_args = SimpleNamespace()
+                script_args.deauth_args = opts_to_str(script_opts)
 
                 super().run(script_args, cmd)
             else:
                 cmd.pfeedback("[i] Disabled client(s) deauthentication.")
 
-            if args.all_clients:
+            if opts.all_clients:
                 cmd.pfeedback(
                     "[i] Monitoring for {} secs on channel {} WPA handshakes between all clients and AP {}...".format(
-                        args.sniff_time, args.channel, args.bssid))
+                        opts.sniff_time, opts.channel, opts.bssid))
             else:
                 cmd.pfeedback(
                     "[i] Monitoring for {} secs on channel {} WPA handshakes between client {} and AP {}...".format(
-                        args.sniff_time, args.channel, args.client, args.bssid))
-            sniff(iface=args.iface, prn=self.handle_packet, timeout=args.sniff_time, store=False,
+                        opts.sniff_time, opts.channel, opts.client, opts.bssid))
+            sniff(iface=opts.interface, prn=self.handle_packet, timeout=opts.sniff_time, store=False,
                   stop_filter=lambda x: self.complete_handshake)
 
     def clear_caches(self) -> None:
@@ -123,7 +112,7 @@ class Module(BaseScript):
     def handle_packet(self, packet: Packet) -> None:
         try:
             if not self.ap_beacon and packet.haslayer(Dot11Beacon) and compare_macs(packet[Dot11].addr3,
-                                                                                    self.args.bssid):
+                                                                                    self.opts.bssid):
                 self.ap_beacon = packet
             elif packet.haslayer(WPA_key):
                 self.handle_eapol_packet(packet)
@@ -138,8 +127,8 @@ class Module(BaseScript):
             bssid = dot11_addrs_info["bssid"]
             client_mac = dot11_addrs_info["sa"] if "to-DS" in dot11_ds_bits else dot11_addrs_info["da"]
 
-            if compare_macs(bssid, self.args.bssid) and (
-                    self.args.all_clients or compare_macs(self.args.client, client_mac)):
+            if compare_macs(bssid, self.opts.bssid) and (
+                    self.opts.all_clients or compare_macs(self.opts.client, client_mac)):
                 if client_mac not in self.handshakes_cache:
                     self.handshakes_cache[client_mac] = [None, None, None, None]
 
