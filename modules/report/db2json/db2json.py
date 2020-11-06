@@ -6,6 +6,7 @@ from pony.orm import db_session
 
 from pinecone.core.database import BasicServiceSet, ExtendedServiceSet, Connection, ProbeReq, Client
 from pinecone.core.module import BaseModule
+from pinecone.core.options import Option, OptionDict
 
 
 class Module(BaseModule):
@@ -15,13 +16,14 @@ class Module(BaseModule):
         "author": "Valentín Blanco (https://github.com/valenbg1)",
         "version": "1.0.0",
         "description": "Prints the current recon database to a JSON file.",
-        "options": argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter),
+        "options": OptionDict(),
         "depends": {}
     }
-    META["options"].add_argument("-w", "--write", help="JSON output file", default="recon-db.json")
+    META["options"].add(Option("WRITE", "recon-db.json", True, "JSON output file"))
 
     @db_session
-    def run(self, args, cmd):
+    def run(self, opts, cmd):
+        opts = opts.get_opts_namespace()
         json_dict = {
             "basic_service_sets": [],
             "extended_service_sets": [],
@@ -81,7 +83,7 @@ class Module(BaseModule):
                 "mac": client.mac
             })
 
-        Path(args.write).write_text(json.dumps(json_dict, indent=4))
+        Path(opts.write).write_text(json.dumps(json_dict, indent=4))
 
     def stop(self, cmd):
         pass

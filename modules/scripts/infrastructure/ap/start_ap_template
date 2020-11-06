@@ -1,16 +1,19 @@
 use daemon/hostapd-wpe
-run {{ hostapd_wpe_args }}
+{{ hostapd_wpe_args }}
+run
 back
 
 use daemon/dnsmasq
-run {{ dnsmasq_args }}
+{{ dnsmasq_args }}
+run
 back
 
 {% if deauth_args_lst %}
 use attack/deauth
 
 {% for deauth_args in deauth_args_lst %}
-run {{ deauth_args }}
+{{ deauth_args }}
+run
 {% endfor %}
 
 back

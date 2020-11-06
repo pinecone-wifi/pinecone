@@ -7,6 +7,7 @@ from pathlib2 import Path
 from pinecone.core.main import TMP_FOLDER_PATH
 from pinecone.core.module import DaemonBaseModule
 from pinecone.utils.template import render_template
+from pinecone.core.options import OptionDict, Option
 
 
 class Module(DaemonBaseModule):
@@ -16,12 +17,12 @@ class Module(DaemonBaseModule):
         "author": "Valentín Blanco (https://github.com/valenbg1)",
         "version": "1.0.0",
         "description": "Manages a dnsmasq daemon server, which provides DNS and DHCP services.",
-        "options": argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter),
+        "options": OptionDict(),
         "depends": {}
     }
-    META["options"].add_argument("-s", "--start-addr", help="DHCP start address", default="192.168.0.50")
-    META["options"].add_argument("-e", "--end-addr", help="DHCP end address", default="192.168.0.150")
-    META["options"].add_argument("-l", "--lease-time", help="DHCP lease time", default="12h")
+    META["options"].add(Option("START_ADDR", "192.168.0.50", "DHCP start address"))
+    META["options"].add(Option("END_ADDR", "192.168.0.150", "DHCP end address"))
+    META["options"].add(Option("LEASE_TIME", "12h", "DHCP lease time"))
 
     PROCESS_NAME = "dnsmasq"
     CONFIG_TEMPLATE_PATH = Path(Path(__file__).parent, "dnsmasq_template.conf").resolve()  # type: Path
@@ -48,8 +49,10 @@ class Module(DaemonBaseModule):
             "custom_hosts": self.custom_hosts
         })
 
-    def run(self, args, cmd):
-        self._render_custom_hosts_file()
-        args.custom_hosts_path = self.custom_hosts_path
+    def run(self, opts, cmd):
+        opts = opts.get_opts_namespace()
 
-        super().run(args, cmd)
+        self._render_custom_hosts_file()
+        opts.custom_hosts_path = self.custom_hosts_path
+
+        super().run(opts, cmd)

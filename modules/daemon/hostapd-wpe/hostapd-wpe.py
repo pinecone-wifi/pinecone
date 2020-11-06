@@ -4,6 +4,7 @@ from subprocess import run
 from pathlib2 import Path
 
 from pinecone.core.module import DaemonBaseModule
+from pinecone.core.options import OptionDict, Option
 
 
 class Module(DaemonBaseModule):
@@ -15,51 +16,48 @@ class Module(DaemonBaseModule):
         "description": "Manages a hostapd-wpe daemon, which provides access point and authentication servers "
                        "functionalities. Supports impersonation attacks against 802.1X networks and also KARMA-style "
                        "gratuitous probe responses.",
-        "options": argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter),
+        "options": OptionDict(),
         "depends": {}
     }
-    META["options"].add_argument("-i", "--iface", help="AP mode capable WLAN interface", default="wlan0",
-                                 metavar="INTERFACE")
-    META["options"].add_argument("-c", "--channel", help="AP channel", default=1, type=int)
-    META["options"].add_argument("-e", "--encryption", help="AP encryption", default="WPA2",
-                                 choices=("OPN", "WEP", "WPA", "WPA/WPA2", "WPA2"))
-    META["options"].add_argument("-m", "--mgt", help="use MGT (802.1X) authn mode instead of PSK (for WPA modes)",
-                                 action="store_true")
-    META["options"].add_argument("-p", "--password", help="AP password (only for WEP or any WPA mode with PSK authn)",
-                                 default="password12345")
-    META["options"].add_argument("-s", "--ssid", help="AP SSID", default="PINECONEWIFI")
-    META["options"].add_argument("-k", "--karma",
-                                 help="respond to all directed probe requests (KARMA-style gratuitous probe responses)",
-                                 action="store_true")
-    META["options"].add_argument("--mac-acl",
-                                 help="path to a MAC addresses whitelist. If specified, all the clients whose MAC "
-                                      "address is not in this list will be rejected.",
-                                 metavar="MAC_ACL_PATH")
+    META["options"].add(Option("INTERFACE", "wlan0", True, "AP mode capable WLAN interface"))
+    META["options"].add(Option("CHANNEL", 1, True, "AP channel", int))
+    META["options"].add(Option("ENCRYPTION", "WPA2", True, "AP encryption",
+                               choices=("OPN", "WEP", "WPA", "WPA/WPA2", "WPA2")))
+    META["options"].add(Option("MGT", False, True, "use MGT (802.1X) authn mode instead of PSK (for WPA modes)", bool))
+    META["options"].add(Option("PASSWORD", "password12345", False, "AP password (only for WEP or any WPA mode with PSK "
+                                                                   "authn)"))
+    META["options"].add(Option("SSID", "PINECONEWIFI", True, "AP SSID"))
+    META["options"].add(Option("KARMA", False, True, "respond to all directed probe requests (KARMA-style gratuitous "
+                                                     "probe responses)", bool))
+    META["options"].add(Option("MAC_ACL", description="path to a MAC addresses whitelist. If specified, all the "
+                                                      "clients whose MAC address is not in this list will be "
+                                                      "rejected."))
 
     PROCESS_NAME = "hostapd-wpe"
     CONFIG_TEMPLATE_PATH = Path(Path(__file__).parent, "hostapd-wpe_template.conf").resolve()
     CONFIG_FILENAME = "hostapd-wpe.conf"
 
     def __init__(self):
-        self.args = None
+        self.opts = None
 
         super().__init__()
 
     def launch(self):
         cmdline_lst = [self.PROCESS_NAME, "-B", "-s"]
 
-        if self.args.karma:
+        if self.opts.karma:
             cmdline_lst.append("-k")
 
         cmdline_lst.append(str(self.config_path))
 
         return run(cmdline_lst).returncode
 
-    def run(self, args, cmd):
-        self.args = args
+    def run(self, opts, cmd):
+        opts = opts.get_opts_namespace()
+        self.opts = opts
 
         for wpaSupplicantProc in self.search_procs("wpa_supplicant"):
-            if any(args.iface in cmdLine for cmdLine in wpaSupplicantProc.cmdline()):
+            if any(opts.interface in cmdLine for cmdLine in wpaSupplicantProc.cmdline()):
                 wpaSupplicantProc.terminate()
 
-        super().run(args, cmd)
+        super().run(opts, cmd)

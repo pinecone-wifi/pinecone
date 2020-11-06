@@ -76,10 +76,10 @@ class DaemonBaseModule(BaseModule):
     def launch(self) -> int:
         pass
 
-    def run(self, args: argparse.Namespace, cmd: Pinecone) -> Any:
+    def run(self, opts, cmd: Pinecone) -> Any:
         self._term_same_procs()
 
-        render_template(self.CONFIG_TEMPLATE_PATH, self.config_path, args)
+        render_template(self.CONFIG_TEMPLATE_PATH, self.config_path, opts)
 
         if self.launch() == 0:
             self.process = next(self._search_same_procs(), None)

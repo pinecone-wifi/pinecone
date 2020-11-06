@@ -8,6 +8,7 @@ from pinecone.core.database import BasicServiceSet, Client
 from pinecone.core.database import to_dict
 from pinecone.core.main import Pinecone
 from pinecone.core.module import BaseModule
+from pinecone.core.options import Option, OptionDict
 
 
 class Module(BaseModule):
@@ -17,35 +18,14 @@ class Module(BaseModule):
         "author": "Raúl Sampedro (https://github.com/rsrdesarrollo)",
         "version": "1.0.0",
         "description": "Dumps the current recon database to a ne04j graph database.",
-        "options": argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter),
+        "options": OptionDict(),
         "depends": {}
     }
-    META["options"].add_argument(
-        "-u", "--uri",
-        help="neo4j connection URI",
-        default="bolt://neo4j:neo4j@127.0.0.1:7687"
-    )
-    META["options"].add_argument(
-        "-s", "--skip-empty-clients",
-        help="don't create clients without any connection/probe",
-        default=False,
-        required=False,
-        action="store_true"
-    )
-    META["options"].add_argument(
-        "-a", "--aggregate-probes",
-        help="aggregate clients with same probes in one node",
-        default=False,
-        required=False,
-        action="store_true"
-    )
-    META["options"].add_argument(
-        "-m", "--mac-vendor-lookup",
-        help="perform mac vendor lookup for the report",
-        default=False,
-        required=False,
-        action="store_true"
-    )
+    META["options"].add(Option("URI", "bolt://neo4j:neo4j@127.0.0.1:7687", True, "neo4j connection URI"))
+    META["options"].add(Option("SKIP_EMPTY_CLIENTS", False, True, "don't create clients without any connection/probe",
+                               bool))
+    META["options"].add(Option("AGGREGATE_PROBES", False, True, "aggregate clients with same probes in one node", bool))
+    META["options"].add(Option("MAC_VENDOR_LOOKUP", False, True, "perform mac vendor lookup for the report", bool))
 
     cmd = None
     mac_parser = None
@@ -60,23 +40,24 @@ class Module(BaseModule):
             else:
                 return addr
 
-    def run(self, args, cmd):
+    def run(self, opts, cmd):
+        opts = opts.get_opts_namespace()
         self.cmd = cmd
 
-        if args.mac_vendor_lookup:
+        if opts.mac_vendor_lookup:
             self.mac_parser = manuf.MacParser(update=True)
 
-        driver = Graph(args.uri)
+        driver = Graph(opts.uri)
 
         tx = driver.begin()
         self._create_bss_nodes(tx)
         tx.commit()
 
         tx = driver.begin()
-        if args.aggregate_probes:
-            self._create_client_aggregated_nodes(tx, args.skip_empty_clients)
+        if opts.aggregate_probes:
+            self._create_client_aggregated_nodes(tx, opts.skip_empty_clients)
         else:
-            self._create_client_nodes(tx, args.skip_empty_clients)
+            self._create_client_nodes(tx, opts.skip_empty_clients)
         tx.commit()
 
         cmd.pfeedback("[i] Neo4j dump completed.")

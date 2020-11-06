@@ -10,6 +10,7 @@ from pinecone.core.database import init_database
 from pinecone.core.main import Pinecone
 
 if __name__ == "__main__":
+    # TODO: reset styling for version.
     pinecone_logo = '''<p fg="#878787">
                 ▐                                                  
                 █                                                  

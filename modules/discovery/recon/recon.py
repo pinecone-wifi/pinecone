@@ -1,4 +1,3 @@
-import argparse
 import itertools
 import signal
 from datetime import datetime
@@ -17,6 +16,7 @@ from pinecone.core.main import Pinecone
 from pinecone.core.module import BaseModule
 from pinecone.utils.interface import set_monitor_mode, check_chset
 from pinecone.utils.packet import is_multicast_mac, process_dot11elts, get_dot11_addrs_info, WEP_AUTHN_TYPE_IDS
+from pinecone.core.options import Option, OptionDict
 
 
 class Module(BaseModule):
@@ -44,45 +44,14 @@ class Module(BaseModule):
         "author": "Valentín Blanco (https://github.com/valenbg1)",
         "version": "1.1.0",
         "description": "Detects 802.11 APs and clients info and saves it to the recon database for further use.",
-        "options": argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter),
+        "options": OptionDict(),
         "depends": {}
     }
-    META["options"].add_argument(
-        "-i", "--ifaces",
-        help="monitor mode capable WLAN interfaces",
-        default="wlan0",
-        required=False,
-        nargs="*",
-        metavar="INTERFACE"
-    )
-    META["options"].add_argument(
-        "-c", "--channel",
-        help="fix interface to specify channel",
-        required=False,
-        type=int,
-        metavar="CHANNEL"
-    )
-    META["options"].add_argument(
-        "-r", "--read",
-        dest="input_file",
-        help="read a pcap file instead of use interface",
-        required=False,
-        metavar="INPUT_FILE"
-    )
-    META["options"].add_argument(
-        "-w", "--write",
-        dest="output_file",
-        help="write a pcap file with processed packages",
-        required=False,
-        metavar="OUTPUT_FILE"
-    )
-    META["options"].add_argument(
-        "-b", "--band",
-        help="Scan on specific band. Use 'mix' for all bands",
-        default="2.4G",
-        choices=CHANNEL_HOPS.keys(),
-        metavar="<{}>".format("|".join(CHANNEL_HOPS.keys()))
-    )
+    META["options"].add(Option("INTERFACES", ["wlan0"], True, "monitor mode capable WLAN interfaces.", is_list=True))
+    META["options"].add(Option("CHANNEL", description="fix interface to specific channel.", opt_type=int))
+    META["options"].add(Option("INPUT_FILE", description="read a pcap file instead of using an interface."))
+    META["options"].add(Option("OUTPUT_FILE", description="write a pcap file with processed packages."))
+    META["options"].add(Option("BAND", "2.4G", True, "scan on specific band. Use 'mix' for all bands", choices=CHANNEL_HOPS.keys()))
 
     def __init__(self):
         self.bssids_cache = None
@@ -120,16 +89,17 @@ class Module(BaseModule):
             # ref: https://github.com/aircrack-ng/aircrack-ng/blob/master/src/airodump-ng.h#L40
             sleep(0.250)
 
-    def run(self, args, cmd):
+    def run(self, opts, cmd):
+        opts = opts.get_opts_namespace()
         self.cmd = cmd
 
         self.clear_caches()
         self.running = True
 
-        if args.input_file is not None:
-            self._run_on_pcap(args)
+        if opts.input_file is not None:
+            self._run_on_pcap(opts)
         else:
-            self._run_on_interface(args)
+            self._run_on_interface(opts)
 
     def stop(self, cmd):
         pass
@@ -329,19 +299,19 @@ class Module(BaseModule):
         check_chset(interface, channel)
         self.iface_current_channel = channel
 
-    def _run_on_interface(self, args):
+    def _run_on_interface(self, opts):
         interfaces = []
         join_to = []
 
-        if args.output_file:
-            self.out_writer = PcapWriter(args.output_file)
+        if opts.output_file:
+            self.out_writer = PcapWriter(opts.output_file)
 
         handle_queue_thread = Thread(target=self.handle_packet_queue)
         handle_queue_thread.start()
 
         join_to.append(handle_queue_thread)
 
-        for iface in args.ifaces:
+        for iface in opts.interfaces:
             interfaces.append(set_monitor_mode(iface))
 
             sniff_thread = Thread(target=self.sniff, kwargs={
@@ -351,16 +321,16 @@ class Module(BaseModule):
 
             join_to.append(sniff_thread)
 
-        if args.channel is None:
+        if opts.channel is None:
             hopping_thread = Thread(target=self.channel_hopping, kwargs={
                 "interfaces": interfaces,
-                "band": args.band
+                "band": opts.band
             })
             hopping_thread.start()
             join_to.append(hopping_thread)
         else:
             for interface in interfaces:
-                check_chset(interface, args.channel)
+                check_chset(interface, opts.channel)
 
         prev_sig_handler = signal.signal(signal.SIGINT, self.sig_int_handler)
 
@@ -374,8 +344,8 @@ class Module(BaseModule):
 
         signal.signal(signal.SIGINT, prev_sig_handler)
 
-    def _run_on_pcap(self, args):
-        reader = PcapReader(args.input_file)
+    def _run_on_pcap(self, opts):
+        reader = PcapReader(opts.input_file)
 
         try:
             while True:
