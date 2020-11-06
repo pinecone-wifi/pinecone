@@ -18,6 +18,18 @@ class OptionsArgumentParser(ArgumentParser):
 
 
 class Option:
+    # TODO: move str_none_empty and str2bool away.
+    @classmethod
+    def str_none_empty(cls, string: Optional[str]) -> str:
+        return "" if string is None else str(string)
+
+    @classmethod
+    def str2bool(cls, string: Optional[str]) -> bool:
+        if string is None:
+            return False
+
+        return string.casefold() in {"true", "yes", "t", "y", "1"}
+
     def __init__(self, name="", value=None, required=False, description: Optional[str] = None, opt_type=str,
                  choices: Iterable = None, is_list=False):
         self.name = name
@@ -26,7 +38,8 @@ class Option:
         self.description = description
 
         self._parser = OptionsArgumentParser()
-        self._parser.add_argument("value", nargs="+" if is_list else None, type=opt_type, choices=choices)
+        self._parser.add_argument("value", nargs="+" if is_list else None,
+                                  type=self.str2bool if opt_type == bool else opt_type, choices=choices)
 
     def parse(self, read_input: Sequence[str] = None):
         self.value = self._parser.parse_args(read_input).value
@@ -35,9 +48,6 @@ class Option:
         return "yes" if self.required else "no"
 
     def value_to_str(self) -> str:
-        def str_none_empty(string: Optional[str]) -> str:
-            return "" if string is None else str(string)
-
         return " ".join(str_none_empty(v) for v in self.value) if type(self.value) == list else \
             str_none_empty(self.value)
 
