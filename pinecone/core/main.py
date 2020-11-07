@@ -4,13 +4,15 @@ import sys
 import shlex
 import textwrap
 from typing import Optional, Iterable, Sequence
+from pathlib import Path
 
 from prompt_toolkit import PromptSession, print_formatted_text
 from prompt_toolkit.formatted_text import HTML
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.completion import NestedCompleter
 from prompt_toolkit.shortcuts import radiolist_dialog
-from pathlib2 import Path
+from prompt_toolkit.history import FileHistory
+
 from sortedcontainers import SortedDict
 
 from pinecone.core.database import Client, db_session, BasicServiceSet, ExtendedServiceSet
@@ -45,7 +47,7 @@ class Pinecone():
             self.commands[command](split_text[1:] if len(split_text) > 1 else [])
 
     def cmdloop(self):
-        session = PromptSession()
+        session = PromptSession(history=FileHistory(Path(TMP_FOLDER_PATH, "pinecone_history")))
 
         while True:
             try:
@@ -53,8 +55,9 @@ class Pinecone():
                 commands_completer_dict["use"] = {module: None for module in self.modules}
 
                 if self.current_module:
-                    commands_completer_dict["set"] = {option.name: None for option in
-                                                      self.current_module.META["options"].values()}
+                    options_completer = {option.name: None for option in self.current_module.META["options"].values()}
+                    commands_completer_dict["set"] = options_completer
+                    commands_completer_dict["unset"] = options_completer
 
                 commands_completer = NestedCompleter.from_nested_dict(commands_completer_dict)
                 self.process_cmd(session.prompt(self.prompt, auto_suggest=AutoSuggestFromHistory(),
@@ -95,6 +98,7 @@ class Pinecone():
             self.commands["back"] = self.do_back
             self.commands["set"] = self.do_set
             self.commands["show"] = self.do_show
+            self.commands["unset"] = self.do_unset
 
             if module.startswith("scripts/"):
                 self.prompt = HTML(self.PROMPT_FORMAT.format("script", module.replace("scripts/", "")))
@@ -119,6 +123,7 @@ class Pinecone():
             del self.commands["back"]
             del self.commands["set"]
             del self.commands["show"]
+            del self.commands["unset"]
 
             self.prompt = self.DEFAULT_PROMPT
 
@@ -137,6 +142,12 @@ class Pinecone():
                             f"option '{opt_name}'.")
 
             self.poutput(f"{opt_name} => {self.current_module.META['options'][opt_name].value}")
+
+    def do_unset(self, args: Sequence[str]):
+        if len(args) >= 1 and args[0] in self.current_module.META["options"]:
+            opt_name = args[0]
+            self.current_module.META["options"][opt_name].value = None
+            self.poutput(f"Unsetting {opt_name}...")
 
     def do_show(self, _):
         print(f"\nModule options ({self.current_module_name}):\n\n"

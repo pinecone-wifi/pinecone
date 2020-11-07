@@ -48,8 +48,8 @@ class Option:
         return "yes" if self.required else "no"
 
     def value_to_str(self) -> str:
-        return " ".join(str_none_empty(v) for v in self.value) if type(self.value) == list else \
-            str_none_empty(self.value)
+        return " ".join(self.str_none_empty(v) for v in self.value) if type(self.value) == list else \
+            self.str_none_empty(self.value)
 
     def name_to_attr(self) -> str:
         return re.sub("([a-z])([A-Z])", r"\1_\2", self.name).lower()
