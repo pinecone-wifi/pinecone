@@ -141,7 +141,7 @@ class Pinecone():
                 self.perror(f"The following option failed to validate: Value '{' '.join(opt_args)}' is not valid for "
                             f"option '{opt_name}'.")
 
-            self.poutput(f"{opt_name} => {self.current_module.META['options'][opt_name].value}")
+            self.poutput(f"{opt_name} => {self.current_module.META['options'][opt_name].value_to_str()}")
 
     def do_unset(self, args: Sequence[str]):
         if len(args) >= 1 and args[0] in self.current_module.META["options"]:
@@ -191,7 +191,8 @@ class Pinecone():
 
     @classmethod
     def perror(cls, msg: str):
-        print_formatted_text(HTML(f"<b fg='ansired'>[-]</b> {msg}"))
+        print_formatted_text(HTML(f"<b fg='ansired'>[-]</b> "), end="")
+        print(msg)
 
     @classmethod
     def select(cls, choices_lst: Iterable, msg: str):

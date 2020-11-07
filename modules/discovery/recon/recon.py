@@ -48,7 +48,9 @@ class Module(BaseModule):
         "depends": {}
     }
     META["options"].add(Option("INTERFACES", ["wlan0"], True, "monitor mode capable WLAN interfaces.", is_list=True))
+    # TODO: fix unique channel.
     META["options"].add(Option("CHANNEL", description="fix interface to specific channel.", opt_type=int))
+    # TODO: fix handle packet queue.
     META["options"].add(Option("INPUT_FILE", description="read a pcap file instead of using an interface."))
     META["options"].add(Option("OUTPUT_FILE", description="write a pcap file with processed packages."))
     META["options"].add(Option("BAND", "2.4G", True, "scan on specific band. Use 'mix' for all bands", choices=CHANNEL_HOPS.keys()))
