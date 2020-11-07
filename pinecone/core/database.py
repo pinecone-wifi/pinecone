@@ -1,7 +1,7 @@
 import sys
 from datetime import datetime
+from pathlib import Path
 
-from pathlib2 import Path
 from pony.orm import *
 
 ENCRYPTION_TYPES = {"OPN", "WEP", "WPA", "WPA2"}

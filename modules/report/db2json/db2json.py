@@ -1,7 +1,6 @@
-import argparse
 import json
+from pathlib import Path
 
-from pathlib2 import Path
 from pony.orm import db_session
 
 from pinecone.core.database import BasicServiceSet, ExtendedServiceSet, Connection, ProbeReq, Client

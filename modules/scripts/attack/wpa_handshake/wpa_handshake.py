@@ -1,5 +1,5 @@
 from types import SimpleNamespace
-from pathlib2 import Path
+from pathlib import Path
 from pony.orm import *
 from pyric import pyw
 from scapy.all import *

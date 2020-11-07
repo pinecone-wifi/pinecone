@@ -1,5 +1,3 @@
-import argparse
-
 from manuf import manuf
 from pony.orm import db_session
 from py2neo import Graph, Relationship, Transaction

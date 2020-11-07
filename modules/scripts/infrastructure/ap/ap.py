@@ -1,9 +1,9 @@
 from ipaddress import ip_network
 from subprocess import run
 from types import SimpleNamespace
+from pathlib import Path
 
 import iptc
-from pathlib2 import Path
 from pony.orm import *
 from pyric import pyw
 

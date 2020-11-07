@@ -1,7 +1,7 @@
 from typing import Union, Any
+from pathlib import Path
 
 from jinja2 import Template
-from pathlib2 import Path
 
 from pinecone.core.options import OptionDict
 

@@ -1,7 +1,5 @@
-import argparse
 from subprocess import run
-
-from pathlib2 import Path
+from pathlib import Path
 
 from pinecone.core.module import DaemonBaseModule
 from pinecone.core.options import OptionDict, Option

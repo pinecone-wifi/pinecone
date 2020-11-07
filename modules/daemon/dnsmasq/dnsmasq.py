@@ -1,8 +1,6 @@
-import argparse
 import signal
 from subprocess import run
-
-from pathlib2 import Path
+from pathlib import Path
 
 from pinecone.core.main import TMP_FOLDER_PATH
 from pinecone.core.module import DaemonBaseModule

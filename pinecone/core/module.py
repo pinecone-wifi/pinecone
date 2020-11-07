@@ -1,8 +1,8 @@
 import argparse
 from abc import ABC, abstractmethod
 from typing import Generator, Dict, Any
+from pathlib import Path
 
-from pathlib2 import Path
 from psutil import process_iter, Process
 
 from pinecone.core.main import Pinecone, TMP_FOLDER_PATH
