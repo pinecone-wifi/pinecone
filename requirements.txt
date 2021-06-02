@@ -10,7 +10,7 @@ psutil==5.6.6
 python-iptables==0.14.0
 cmd2==0.9.19
 py2neo==4.3.0
-urllib3==1.25.7
+urllib3==1.26.5
 neobolt==1.7.16
 neotime==1.7.4
 certifi==2019.11.28
