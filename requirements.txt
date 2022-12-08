@@ -13,5 +13,5 @@ py2neo==4.3.0
 urllib3==1.25.7
 neobolt==1.7.16
 neotime==1.7.4
-certifi==2019.11.28
+certifi==2022.12.7
 git+https://github.com/pinecone-wifi/manuf.git@master#egg=manuf
