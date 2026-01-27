@@ -1,0 +1,33 @@
+[project]
+name = "pinecone"
+version = "0.1.0"
+description = "A WLAN red team framework"
+authors = [
+    {name = "Valentín Blanco",email = "valentin_gomez1@hotmail.com"},
+    {name = "Raúl Sampedro", email = "5142014+rsrdesarrollo@users.noreply.github.com"}
+]
+license = {text = "GPLv3.0"}
+readme = "README.md"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    "jinja2 (==3.1.6)",
+    "pathlib2 (==2.3.7.post1)",
+    "psutil (==7.2.1)",
+    "python-iptables (==1.2.0)",
+    "cmd2 (==3.1.0)",
+    "py2neo (==2021.2.4)",
+    "urllib3 (==2.6.3)",
+    "neobolt (==1.7.17)",
+    "neotime (==1.7.4)",
+    "certifi (==2026.1.4)",
+    "six (==1.17.0)",
+    "pyric (==0.1.6.3)",
+    "pony (==0.7.19)",
+    "scapy (>=2.7.0,<3.0.0)",
+    "manuf (>=1.1.5,<2.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

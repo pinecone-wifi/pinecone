@@ -4,8 +4,8 @@
 PyRIC==0.1.6.3
 pony==0.7.10
 git+https://github.com/secdev/scapy.git@master#egg=scapy
-Jinja2==2.10.1
-pathlib2==2.3.5
+Jinja2==3.1.6
+pathlib2==2.3.7.post1
 psutil==5.6.6
 python-iptables==0.14.0
 cmd2==0.9.19
@@ -13,6 +13,6 @@ py2neo==2021.2.4
 urllib3==1.25.7
 neobolt==1.7.16
 neotime==1.7.4
-certifi==2019.11.28
+certifi==2026.1.4
 git+https://github.com/pinecone-wifi/manuf.git@master#egg=manuf
 six=1.15.0
