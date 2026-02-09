@@ -47,6 +47,10 @@ class Pinecone(cmd2.Cmd):
     use_parser = Cmd2ArgumentParser()
     use_module_action = use_parser.add_argument("module", choices=modules, type=str, help="module ID")
 
+    def do_reload(self):
+        self.pfeedback("Reloading modules.")
+        self.reload_modules()
+
     @cmd2.with_argparser(use_parser)
     def do_use(self, args: argparse.Namespace) -> None:
         """Interact with the specified module."""

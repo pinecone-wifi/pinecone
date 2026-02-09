@@ -2,7 +2,8 @@ import argparse
 import itertools
 import signal
 from datetime import datetime
-from queue import Queue, Empty
+from multiprocessing import Queue
+import queue
 from threading import Thread
 from time import sleep
 
@@ -298,7 +299,7 @@ class Module(BaseModule):
         while self.running:
             try:
                 packet = self.in_pkcs_queue.get(timeout=1)
-            except Empty:
+            except queue.Empty:
                 # Allow re evaluation of self.running for controlled cleanup
                 continue
 
