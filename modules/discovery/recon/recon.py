@@ -2,7 +2,6 @@ import argparse
 import itertools
 import signal
 from datetime import datetime
-from multiprocessing import Queue
 import queue
 from threading import Thread
 from time import sleep
@@ -92,7 +91,7 @@ class Module(BaseModule):
         self.iface_current_channel = None
         self.running = False
         self.cmd: Pinecone = None
-        self.in_pkcs_queue = Queue()
+        self.in_pkcs_queue = queue.Queue()
         self.out_writer: PcapWriter = None
 
     def sig_int_handler(self, signal, frame):
