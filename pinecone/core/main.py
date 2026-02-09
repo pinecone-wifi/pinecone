@@ -47,7 +47,7 @@ class Pinecone(cmd2.Cmd):
     use_parser = Cmd2ArgumentParser()
     use_module_action = use_parser.add_argument("module", choices=modules, type=str, help="module ID")
 
-    def do_reload(self):
+    def do_reload(self, _):
         self.pfeedback("Reloading modules.")
         self.reload_modules()
 
