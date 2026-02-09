@@ -28,8 +28,9 @@ class Pinecone(cmd2.Cmd):
         super().__init__(persistent_history_file=str(Path(TMP_FOLDER_PATH, "pinecone_history")),
                          persistent_history_length=500)
 
-    def reload_modules(self) -> None:
-        self.modules.clear()
+    @classmethod
+    def reload_modules(cls) -> None:
+        cls.modules.clear()
         modules_it = Path(sys.path[0], "modules").rglob("*.py")
 
         for py_file_path in modules_it:
@@ -42,9 +43,12 @@ class Pinecone(cmd2.Cmd):
                     module = importlib.util.module_from_spec(module_spec)
                     module_spec.loader.exec_module(module)
                     module_class = module.Module
-                    self.modules[module_class.META["id"]] = module_class()
+                    cls.modules[module_class.META["id"]] = module_class()
                 except Exception as ex:
-                    self.pfeedback(f"[ERROR] loading module {py_file_path}: {ex}")
+                    pass
+        
+        # Update parser choices with loaded modules
+        cls.use_module_action.choices = list(cls.modules.keys())
 
     use_parser = Cmd2ArgumentParser()
     use_module_action = use_parser.add_argument("module", choices=list(modules.keys()), type=str, help="module ID")
