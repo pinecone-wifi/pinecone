@@ -20,13 +20,14 @@ class Pinecone(cmd2.Cmd):
     modules = {}
 
     def __init__(self):
-        self.prompt = self.DEFAULT_PROMPT
         self.current_module = None
 
         TMP_FOLDER_PATH.mkdir(parents=True, exist_ok=True)
 
         super().__init__(persistent_history_file=str(Path(TMP_FOLDER_PATH, "pinecone_history")),
                          persistent_history_length=500)
+        
+        self.prompt = self.DEFAULT_PROMPT
 
     @classmethod
     def reload_modules(cls) -> None:
