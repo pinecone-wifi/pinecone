@@ -14,5 +14,6 @@ if __name__ == "__main__":
 
     # Remove arguments prior tu call cmd loop
     sys.argv = sys.argv[:1]
-    Pinecone.reload_modules()
-    Pinecone().cmdloop()
+    cli = Pinecone()
+    cli.reload_modules()
+    cli.cmdloop()
