@@ -31,8 +31,6 @@ class Pinecone(cmd2.Cmd):
         super().__init__(persistent_history_file=str(Path(TMP_FOLDER_PATH, "pinecone_history")),
                          persistent_history_length=500)
         
-        # Wrap do_run with the dynamic parser
-        self.do_run = cmd2.with_argparser(self._get_run_parser)(self.do_run)
         self.prompt = self.DEFAULT_PROMPT
 
     def reload_modules(self) -> None:
@@ -78,13 +76,21 @@ class Pinecone(cmd2.Cmd):
             return Cmd2ArgumentParser()
         return self.current_module.META["options"]
 
-    def do_run(self, args: argparse.Namespace) -> None:
+    def do_run(self, statement: str) -> None:
         """Run the current module."""
         if self.current_module is None:
             self.perror("No module selected. Use 'use' command to select a module first.")
             return
         
-        self.current_module.run(args, self)
+        try:
+            args = self._get_run_parser().parse_args(statement.split())
+            self.current_module.run(args, self)
+        except SystemExit:
+            pass
+
+    def help_run(self) -> None:
+        """Show help for the run command."""
+        self.poutput(self._get_run_parser().format_help())
 
     def do_stop(self, _: argparse.Namespace = None) -> None:
         self.current_module.stop(self)
