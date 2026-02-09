@@ -35,14 +35,17 @@ class Pinecone(cmd2.Cmd):
 
         for py_file_path in modules_it:
             if py_file_path.stem == py_file_path.parent.name:
-                module_name = "pinecone.{}".format(
-                    re.search("modules/.*{}".format(py_file_path.stem), py_file_path.as_posix()).group().replace(
-                        "/", "."))
-                module_spec = importlib.util.spec_from_file_location(module_name, str(py_file_path))
-                module = importlib.util.module_from_spec(module_spec)
-                module_spec.loader.exec_module(module)
-                module_class = module.Module
-                cls.modules[module_class.META["id"]] = module_class()
+                try:
+                    module_name = "pinecone.{}".format(
+                        re.search("modules/.*{}".format(py_file_path.stem), py_file_path.as_posix()).group().replace(
+                            "/", "."))
+                    module_spec = importlib.util.spec_from_file_location(module_name, str(py_file_path))
+                    module = importlib.util.module_from_spec(module_spec)
+                    module_spec.loader.exec_module(module)
+                    module_class = module.Module
+                    cls.modules[module_class.META["id"]] = module_class()
+                except:
+                    pass
 
     use_parser = Cmd2ArgumentParser()
     use_module_action = use_parser.add_argument("module", choices=modules, type=str, help="module ID")
