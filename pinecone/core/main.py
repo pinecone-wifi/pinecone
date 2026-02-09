@@ -21,10 +21,6 @@ class Pinecone(cmd2.Cmd):
 
     use_parser = Cmd2ArgumentParser()
     use_module_action = use_parser.add_argument("module", choices=list(modules.keys()), type=str, help="module ID")
-    
-    # Default empty parser for run command
-    run_parser = Cmd2ArgumentParser()
-    run_parser.add_help = True
 
 
     def __init__(self):
@@ -68,26 +64,26 @@ class Pinecone(cmd2.Cmd):
 
         if args.module in self.modules:
             self.current_module = self.modules[args.module]
-            # Update the run command's parser to use the module's parser
-            self.do_run = cmd2.with_argparser(self.current_module.META["options"])(self._do_run)
 
             if args.module.startswith("scripts/"):
                 self.prompt = self.PROMPT_FORMAT.format("script", args.module.replace("scripts/", ""))
             else:
                 self.prompt = self.PROMPT_FORMAT.format("module", args.module)
 
-    def _do_run(self, args):    
-        """Run the current module. Use 'use' command to select a module first."""
+    def _get_run_parser(self) -> argparse.ArgumentParser:
+        """Get the current module's parser or a default empty one."""
+        if self.current_module is None:
+            return Cmd2ArgumentParser()
+        return self.current_module.META["options"]
+
+    @cmd2.with_argparser(_get_run_parser)
+    def do_run(self, args: argparse.Namespace) -> None:
+        """Run the current module."""
         if self.current_module is None:
             self.perror("No module selected. Use 'use' command to select a module first.")
             return
         
-        # The argparser has been updated by do_use, so we can safely call run
         self.current_module.run(args, self)
-
-    @cmd2.with_argparser(run_parser)
-    def do_run(self, args: argparse.Namespace) -> None:
-        self._do_run(args)
 
     def do_stop(self, _: argparse.Namespace = None) -> None:
         self.current_module.stop(self)
