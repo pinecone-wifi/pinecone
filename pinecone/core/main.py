@@ -19,6 +19,10 @@ class Pinecone(cmd2.Cmd):
 
     modules = {}
 
+    use_parser = Cmd2ArgumentParser()
+    use_module_action = use_parser.add_argument("module", choices=list(modules.keys()), type=str, help="module ID")
+
+
     def __init__(self):
         self.current_module = None
 
@@ -29,9 +33,8 @@ class Pinecone(cmd2.Cmd):
         
         self.prompt = self.DEFAULT_PROMPT
 
-    @classmethod
-    def reload_modules(cls) -> None:
-        cls.modules.clear()
+    def reload_modules(self) -> None:
+        self.modules.clear()
         modules_it = Path(sys.path[0], "modules").rglob("*.py")
 
         for py_file_path in modules_it:
@@ -44,15 +47,12 @@ class Pinecone(cmd2.Cmd):
                     module = importlib.util.module_from_spec(module_spec)
                     module_spec.loader.exec_module(module)
                     module_class = module.Module
-                    cls.modules[module_class.META["id"]] = module_class()
+                    self.modules[module_class.META["id"]] = module_class()
                 except Exception as ex:
                     pass
         
         # Update parser choices with loaded modules
-        cls.use_module_action.choices = list(cls.modules.keys())
-
-    use_parser = Cmd2ArgumentParser()
-    use_module_action = use_parser.add_argument("module", choices=list(modules.keys()), type=str, help="module ID")
+        self.use_module_action.choices = list(self.modules.keys())
 
     def do_reload(self, _):
         self.pfeedback("Reloading modules.")
@@ -64,7 +64,7 @@ class Pinecone(cmd2.Cmd):
 
         if args.module in self.modules:
             self.current_module = self.modules[args.module]
-            type(self).do_run = cmd2.with_argparser(self.current_module.META["options"])(type(self)._do_run)
+            self.do_run = cmd2.with_argparser(self.current_module.META["options"])(self._do_run)
             self.current_module.META["options"].prog = "run"
 
             if args.module.startswith("scripts/"):
